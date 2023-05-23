@@ -1,7 +1,7 @@
 #version 330
 
 layout(triangles) in;
-layout(line_strip) out;
+layout(triangle_strip) out;
 layout(max_vertices = 4) out;
 
 in vec4 gColor[];
@@ -15,8 +15,5 @@ void main(void) {
 		iColor = gColor[i];
 		EmitVertex();
 	}
-  gl_Position = gl_in[0].gl_Position;
-  iColor = gColor[0];
-  EmitVertex();
 	EndPrimitive();
 }

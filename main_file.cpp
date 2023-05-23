@@ -17,6 +17,7 @@ jeśli nie - napisz do Free Software Foundation, Inc., 59 Temple
 Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 */
 
+#include <glm/ext/matrix_transform.hpp>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_SWIZZLE
 
@@ -77,18 +78,38 @@ public:
 
 struct obj3dmodel {
   std::vector<float> verts;
+  std::vector<unsigned int> groups;
   std::vector<float> norms;
-  std::vector<float> tex;
+  std::vector<float> texCoords;
   std::vector<unsigned int> faces;
-  std::vector<float> colors;
+  std::array<float, 4 * 7> wall_colors;
 
   void from_file(const char *filename);
   void draw();
+  void set_wall_colors(std::array<float, 4 * 7> wall_colors);
 };
 
 void obj3dmodel::draw() {
-  glDrawElements(GL_TRIANGLES, this->faces.size(), GL_UNSIGNED_INT,
-                 this->faces.data());
+  glUniform4fv(sp->u("wall_colors"), 4 * 7, wall_colors.data());
+
+  glEnableVertexAttribArray(sp->a("vertex"));
+  glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, verts.data());
+
+  glEnableVertexAttribArray(sp->a("group"));
+  glVertexAttribIPointer(sp->a("group"), 1, GL_UNSIGNED_INT, 0, groups.data());
+
+  glDrawArrays(GL_TRIANGLES, 0, verts.size() / 4);
+
+  glDisableVertexAttribArray(
+      sp->a("vertex")); // Wyłącz przesyłanie danych do atrybutu vertex
+  glDisableVertexAttribArray(
+      sp->a("color")); // Wyłącz przesyłanie danych do atrybutu color
+  glDisableVertexAttribArray(
+      sp->a("group")); // Wyłącz przesyłanie danych do atrybutu color
+}
+
+void obj3dmodel::set_wall_colors(std::array<float, 4 * 7> wall_colors) {
+  this->wall_colors = wall_colors;
 }
 
 void obj3dmodel::from_file(const char *filename) {
@@ -97,41 +118,77 @@ void obj3dmodel::from_file(const char *filename) {
     std::cerr << "Cannot open " << filename << std::endl;
     exit(1);
   }
-  std::array<float, 4> v = {0, 0, 0, 1.0f};
   std::string line;
+  std::array<float, 4> v = {0, 0, 0, 1.0f};
+  std::array<float, 2> t = {0};
+  unsigned int group = 0;
+  std::vector<std::array<float, 4>> ver;
+  std::vector<std::array<float, 2>> vts;
   while (getline(in, line)) {
     auto l = line.substr(0, 2);
-    std::istringstream s(line.substr(2));
+    std::istringstream ss(line.substr(2));
     if (l == "v ") {
-      s >> v[0];
-      s >> v[1];
-      s >> v[2];
-      verts.insert(verts.end(), v.begin(), v.end());
+      ss >> v[0];
+      ss >> v[1];
+      ss >> v[2];
+      v[3] = 1;
+      ver.push_back(v);
     } else if (l == "vn") {
-      s >> v[0];
-      s >> v[1];
-      s >> v[2];
+      ss >> v[0];
+      ss >> v[1];
+      ss >> v[2];
       norms.insert(norms.end(), std::begin(v), std::end(v) - 1);
+    } else if (l == "vt") {
+      ss >> t[0]; // u
+      ss >> t[1]; // v
+      vts.push_back(t);
+    } else if (l == "g ") {
+      std::string s;
+      ss >> s;
+      if (s == "face") {
+        ss >> group;
+      } else if (s == "off") {
+        group = 0;
+      } else {
+        throw("unrecognized group: \"" + s + "\"");
+      }
     } else if (l == "f ") {
-      s.imbue(std::locale(std::locale(), new slash_plus_space_locale));
+      ss.imbue(std::locale(std::locale(), new slash_plus_space_locale));
       for (int i = 0; i < 3; i++) {
         int v, vt, vn;
-        s >> v;
-        s >> vt;
-        s >> vn;
+        ss >> v;
+        ss >> vt;
+        ss >> vn;
         faces.push_back(v - 1);
+        verts.insert(verts.end(), ver[v - 1].begin(), ver[v - 1].end());
+        texCoords.insert(texCoords.end(), vts[vt - 1].begin(),
+                         vts[vt - 1].end());
+        groups.push_back(group);
       }
-    } else if (l == "vt") {
-      std::array<float, 3> t = {0};
-      s >> t[0]; // u
-      s >> t[1]; // v
-      t[2] = 0;  // w
-      tex.insert(tex.end(), t.begin(), t.end());
     }
   }
+  assert(this->texCoords.size() / 2 == this->verts.size() / 4);
+  assert(this->groups.size() == this->verts.size() / 4);
 }
 
-obj3dmodel kostka;
+GLuint readTexture(const char *filename) {
+  GLuint tex;
+  glActiveTexture(GL_TEXTURE0);
+  // Wczytanie do pamięci komputera
+  std::vector<unsigned char> image; // Alokuj wektor do wczytania obrazka
+  unsigned width, height; // Zmienne do których wczytamy wymiary obrazka
+  // Wczytaj obrazek
+  unsigned error = lodepng::decode(image, width, height, filename);
+  // Import do pamięci karty graficznej
+  glGenTextures(1, &tex);            // Zainicjuj jeden uchwyt
+  glBindTexture(GL_TEXTURE_2D, tex); // Uaktywnij uchwyt
+  // Wczytaj obrazek do pamięci KG skojarzonej z uchwytem
+  glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+               (unsigned char *)image.data());
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  return tex;
+}
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action,
                  int mods) {
@@ -163,6 +220,7 @@ void windowResizeCallback(GLFWwindow *window, int width, int height) {
   aspectRatio = (float)width / (float)height;
   glViewport(0, 0, width, height);
 }
+obj3dmodel kostka;
 
 // Procedura inicjująca
 void initOpenGLProgram(GLFWwindow *window) {
@@ -174,25 +232,24 @@ void initOpenGLProgram(GLFWwindow *window) {
   glfwSetKeyCallback(window, keyCallback);
 
   kostka.from_file("kostka.obj");
-  float color[4] = {
-      1.0f,
-      0.5f,
-      0.5f,
-      1.0f,
-  };
-  for (int i = 0; i < kostka.verts.size(); i++) {
-    kostka.colors.insert(kostka.colors.end(), std::begin(color),
-                         std::end(color));
-  }
-  sp = new ShaderProgram("v_simplest.glsl", "g_simplest.glsl",
+  kostka.set_wall_colors({
+      1.0, 1.0, 1.0, 0.0, // brzegi
+      1.0, 0.0, 0.0, 0.0, // sciana 1
+      0.0, 1.0, 0.0, 0.0, // sciana 2
+      0.0, 0.0, 1.0, 0.0, // sciana 3
+      1.0, 1.0, 0.0, 0.0, // sciana 4
+      0.0, 1.0, 1.0, 0.0, // sciana 5
+      1.0, 0.0, 1.0, 0.0, // sciana 6
+  });
+  sp = new ShaderProgram("v_simplest.glsl", NULL /*  "g_simplest.glsl" */,
                          "f_simplest.glsl");
 }
 
 // Zwolnienie zasobów zajętych przez program
 void freeOpenGLProgram(GLFWwindow *window) {
-  //************Tutaj umieszczaj kod, który należy wykonać po zakończeniu pętli
+  //************Tutaj umieszczaj kod, który należy wykonać po zakończeniu
+  // pętli
   // głównej************
-
   delete sp;
 }
 
@@ -213,6 +270,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y) {
                   glm::vec3(1.0f, 0.0f, 0.0f)); // Wylicz macierz modelu
   M = glm::rotate(M, angle_x,
                   glm::vec3(0.0f, 1.0f, 0.0f)); // Wylicz macierz modelu
+  M = glm::scale(M, glm::vec3(0.5));
 
   sp->use(); // Aktywacja programu cieniującego
   // Przeslij parametry programu cieniującego do karty graficznej
@@ -220,24 +278,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y) {
   glUniformMatrix4fv(sp->u("V"), 1, false, glm::value_ptr(V));
   glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
 
-  glEnableVertexAttribArray(
-      sp->a("vertex")); // Włącz przesyłanie danych do atrybutu vertex
-  glVertexAttribPointer(
-      sp->a("vertex"), 4, GL_FLOAT, false, 0,
-      kostka.verts.data()); // Wskaż tablicę z danymi dla atrybutu vertex
-
-  glEnableVertexAttribArray(
-      sp->a("color")); // Włącz przesyłanie danych do atrybutu vertex
-  glVertexAttribPointer(
-      sp->a("color"), 4, GL_FLOAT, false, 0,
-      kostka.colors.data()); // Wskaż tablicę z danymi dla atrybutu color
-
   kostka.draw();
-
-  glDisableVertexAttribArray(
-      sp->a("vertex")); // Wyłącz przesyłanie danych do atrybutu vertex
-  glDisableVertexAttribArray(
-      sp->a("color")); // Wyłącz przesyłanie danych do atrybutu color
 
   glfwSwapBuffers(window); // Przerzuć tylny bufor na przedni
 }
