@@ -98,12 +98,15 @@ void obj3dmodel::draw() {
   glEnableVertexAttribArray(sp->a("group"));
   glVertexAttribIPointer(sp->a("group"), 1, GL_UNSIGNED_INT, 0, groups.data());
 
+  glEnableVertexAttribArray(sp->a("normal"));
+  glVertexAttribIPointer(sp->a("normal"), 4, GL_FLOAT, 0, norms.data());
+
   glDrawArrays(GL_TRIANGLES, 0, verts.size() / 4);
 
   glDisableVertexAttribArray(
       sp->a("vertex")); // Wyłącz przesyłanie danych do atrybutu vertex
   glDisableVertexAttribArray(
-      sp->a("color")); // Wyłącz przesyłanie danych do atrybutu color
+      sp->a("normal")); // Wyłącz przesyłanie danych do atrybutu vertex
   glDisableVertexAttribArray(
       sp->a("group")); // Wyłącz przesyłanie danych do atrybutu color
 }
@@ -123,6 +126,7 @@ void obj3dmodel::from_file(const char *filename) {
   std::array<float, 2> t = {0};
   unsigned int group = 0;
   std::vector<std::array<float, 4>> ver;
+  std::vector<std::array<float, 4>> nrm;
   std::vector<std::array<float, 2>> vts;
   while (getline(in, line)) {
     auto l = line.substr(0, 2);
@@ -137,7 +141,8 @@ void obj3dmodel::from_file(const char *filename) {
       ss >> v[0];
       ss >> v[1];
       ss >> v[2];
-      norms.insert(norms.end(), std::begin(v), std::end(v) - 1);
+      v[3] = 0;
+      nrm.push_back(v);
     } else if (l == "vt") {
       ss >> t[0]; // u
       ss >> t[1]; // v
@@ -161,12 +166,14 @@ void obj3dmodel::from_file(const char *filename) {
         ss >> vn;
         faces.push_back(v - 1);
         verts.insert(verts.end(), ver[v - 1].begin(), ver[v - 1].end());
+        norms.insert(norms.end(), nrm[v - 1].begin(), nrm[v - 1].end());
         texCoords.insert(texCoords.end(), vts[vt - 1].begin(),
                          vts[vt - 1].end());
         groups.push_back(group);
       }
     }
   }
+  assert(this->norms.size() == this->verts.size());
   assert(this->texCoords.size() / 2 == this->verts.size() / 4);
   assert(this->groups.size() == this->verts.size() / 4);
 }
@@ -258,8 +265,10 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y) {
   //************Tutaj umieszczaj kod rysujący obraz******************l
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  glm::vec3 camera = glm::vec3(0, 0, -3);
+
   glm::mat4 V =
-      glm::lookAt(glm::vec3(0, 0, -3), glm::vec3(0, 0, 0),
+      glm::lookAt(camera, glm::vec3(0, 0, 0),
                   glm::vec3(0.0f, 1.0f, 0.0f)); // Wylicz macierz widoku
 
   glm::mat4 P = glm::perspective(50.0f * PI / 180.0f, aspectRatio, 0.01f,
@@ -277,6 +286,8 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y) {
   glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(P));
   glUniformMatrix4fv(sp->u("V"), 1, false, glm::value_ptr(V));
   glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
+  glUniform4fv(sp->u("camera"), 1, glm::value_ptr(camera));
+  glUniform4fv(sp->u("lp"), 1, glm::value_ptr(camera));
 
   kostka.draw();
 
