@@ -45,8 +45,30 @@ float speed_y = 0;
 float aspectRatio = 1;
 float angle_x = 0; // Aktualny kąt obrotu obiektu
 float angle_y = 0; // Aktualny kąt obrotu obiektu
-bool canRotateWall = 0;
-float wallAngle = 0; // Aktualny kąt obrotu obiektu
+int canRotateWall = 0;
+float wallAngle[6] = {0, 0, 0, 0, 0, 0}; // Aktualny kąt obrotu ściany
+int chooseWall = 0; //wybór ściany
+int checkAngle[6];
+
+//tablica wektorów obrotu poszczególnych kosteczek
+
+glm::vec3 rotKostki[3][3][3] = {
+    {   // ściana gdzie środkowa kostka jest czerwona
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // poziomy rząd kostek nad czerwoną kostką
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)} // poziomy rząd kostek pod czerwoną kostką
+    },
+    {   //ściana pomiędzy
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // analogiczne jak wyżej
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}
+    },
+    {   // ściana gdzie środkowa kostka jest niebieska
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // analogicznie jak wyżej
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}
+    }
+};
 
 ShaderProgram* sp;
 
@@ -204,14 +226,25 @@ GLuint readTexture(const char* filename) {
 void keyCallback(GLFWwindow* window, int key, int scancode, int action,
     int mods) {
     if (action == GLFW_PRESS) {
-        if (key == GLFW_KEY_LEFT)
-            canRotateWall = 1;
+        if (key == GLFW_KEY_LEFT) {
+            canRotateWall = -1;
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    rotKostki[i][0][j][1] += 0.25;
+                }
+            }
+        }
         if (key == GLFW_KEY_RIGHT)
-            speed_x = PI / 2;
+            canRotateWall = 1;
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    rotKostki[i][0][j][1] += 0.25;
+                }
+            }
         if (key == GLFW_KEY_UP)
-            speed_y = PI / 2;
+            chooseWall -= 1;
         if (key == GLFW_KEY_DOWN)
-            speed_y = -PI / 2;
+            chooseWall += 1;
     }
     if (action == GLFW_RELEASE) {
         if (key == GLFW_KEY_LEFT)
@@ -309,25 +342,19 @@ void freeOpenGLProgram(GLFWwindow* window) {
     delete sp;
 }
 
-//tablica wektorów obrotu poszczególnych kosteczek
-
-glm::vec3 rotKostki[3][3][3] = {
-    {   // ściana gdzie środkowa kostka jest czerwona
-        {glm::vec3(0, 1, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // poziomy rząd kostek nad czerwoną kostką
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)} // poziomy rząd kostek pod czerwoną kostką
-    },
-    {   //ściana pomiędzy
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // analogiczne jak wyżej
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}
-    },
-    {   // ściana gdzie środkowa kostka jest niebieska
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // analogicznie jak wyżej
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}
+void drawKostka(glm::mat4 M, glm::vec3 V) {
+    bool canRot = 0;
+    for (int i = 0; i < 3; i++)
+    {
+        if (V[i] != 0) {
+            canRot = 1; 
+            break;
+        }
     }
-};
+    if(canRot) M = glm::rotate(M, glm::radians(360.0f),V);
+    glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
+    kostka.draw();
+}
 
 // Procedura rysująca zawartość sceny
 void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
@@ -357,13 +384,42 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 
     kostka.draw();
 
+    /*kostka.draw();
+
     M = glm::translate(M, glm::vec3(0, 2, 0));
     M = glm::rotate(M, glm::radians(wallAngle),
         glm::vec3(0, 1, 0));
 
     glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
 
-    kostka.draw();
+    kostka.draw();*/
+    if (chooseWall == 0 || chooseWall == 1) {
+        glm::mat4 Mf = M;
+        glm::mat4 Mjn = M;
+        if (chooseWall == 0) {
+            Mf = glm::translate(Mf, glm::vec3(0, 2, 0)); // obracana ściana fioletowa
+            Mf = glm::rotate(Mf, glm::radians(wallAngle[chooseWall]),
+                glm::vec3(0, 1, 0));
+
+            drawKostka(Mf, rotKostki[1][0][1]);
+
+            Mjn = glm::translate(Mjn, glm::vec3(0, -2, 0)); //ściana jasnoniebieska
+
+            drawKostka(Mjn, rotKostki[1][2][1]);
+        }
+        else {
+            Mjn = glm::translate(Mjn, glm::vec3(0, -2, 0)); // obracana ściana jasnoniebieska
+            Mjn = glm::rotate(Mjn, glm::radians(wallAngle[chooseWall]),
+                glm::vec3(0, 1, 0));
+
+            drawKostka(Mjn, rotKostki[1][2][1]);
+
+            Mf = glm::translate(Mf, glm::vec3(0, 2, 0)); //ściana fioletowa
+
+            drawKostka(Mf, rotKostki[1][0][1]);
+        }
+
+    }
 
     glfwSwapBuffers(window); // Przerzuć tylny bufor na przedni
 }
@@ -422,10 +478,21 @@ int main(void) {
             angle_y = -0.5;
 
         //printf("%f\n", angle_y);
-
-        if (canRotateWall) {
-            wallAngle += 1;
-            if (wallAngle == 90) canRotateWall = 0;
+        if (canRotateWall == -1) {
+            wallAngle[chooseWall] -= 5;
+            checkAngle[chooseWall] = static_cast<int>(wallAngle[chooseWall]);
+            if (checkAngle[chooseWall] % 90 == 0) {
+                canRotateWall = 0;
+                wallAngle[chooseWall] = 0;
+            }
+        }
+        else if (canRotateWall == 1){
+            wallAngle[chooseWall] += 5;
+            checkAngle[chooseWall] = static_cast<int>(wallAngle[chooseWall]);
+            if (checkAngle[chooseWall] % 90 == 0) {
+                canRotateWall = 0;
+                wallAngle[chooseWall] = 0;
+            }
         }
 
         glfwSetTime(0);                      // Zeruj timer
