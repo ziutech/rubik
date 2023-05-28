@@ -45,6 +45,8 @@ float speed_y = 0;
 float aspectRatio = 1;
 float angle_x = 0; // Aktualny kąt obrotu obiektu
 float angle_y = 0; // Aktualny kąt obrotu obiektu
+bool canRotateWall = 0;
+float wallAngle = 0; // Aktualny kąt obrotu obiektu
 
 ShaderProgram* sp;
 
@@ -203,7 +205,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
     int mods) {
     if (action == GLFW_PRESS) {
         if (key == GLFW_KEY_LEFT)
-            speed_x = -PI / 2;
+            canRotateWall = 1;
         if (key == GLFW_KEY_RIGHT)
             speed_x = PI / 2;
         if (key == GLFW_KEY_UP)
@@ -307,13 +309,33 @@ void freeOpenGLProgram(GLFWwindow* window) {
     delete sp;
 }
 
+//tablica wektorów obrotu poszczególnych kosteczek
+
+glm::vec3 rotKostki[3][3][3] = {
+    {   // ściana gdzie środkowa kostka jest czerwona
+        {glm::vec3(0, 1, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // poziomy rząd kostek nad czerwoną kostką
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)} // poziomy rząd kostek pod czerwoną kostką
+    },
+    {   //ściana pomiędzy
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // analogiczne jak wyżej
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}
+    },
+    {   // ściana gdzie środkowa kostka jest niebieska
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // analogicznie jak wyżej
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
+        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}
+    }
+};
+
 // Procedura rysująca zawartość sceny
 void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
     //************Tutaj umieszczaj kod rysujący obraz******************l
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 V =
-        glm::lookAt(glm::vec3(0, 0, -3), glm::vec3(0, 0, 0),
+        glm::lookAt(glm::vec3(0, 0, -6), glm::vec3(0, 0, 0),
             glm::vec3(0.0f, 1.0f, 0.0f)); // Wylicz macierz widoku
 
     glm::mat4 P = glm::perspective(50.0f * PI / 180.0f, aspectRatio, 0.01f,
@@ -335,6 +357,14 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 
     kostka.draw();
 
+    M = glm::translate(M, glm::vec3(0, 2, 0));
+    M = glm::rotate(M, glm::radians(wallAngle),
+        glm::vec3(0, 1, 0));
+
+    glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
+
+    kostka.draw();
+
     glfwSwapBuffers(window); // Przerzuć tylny bufor na przedni
 }
 
@@ -349,7 +379,7 @@ int main(void) {
     }
 
     window = glfwCreateWindow(
-        500, 500, "OpenGL", NULL,
+        1000, 1000, "OpenGL", NULL,
         NULL); // Utwórz okno 500x500 o tytule "OpenGL" i kontekst OpenGL.
 
     if (!window) // Jeżeli okna nie udało się utworzyć, to zamknij program
@@ -392,6 +422,11 @@ int main(void) {
             angle_y = -0.5;
 
         //printf("%f\n", angle_y);
+
+        if (canRotateWall) {
+            wallAngle += 1;
+            if (wallAngle == 90) canRotateWall = 0;
+        }
 
         glfwSetTime(0);                      // Zeruj timer
         drawScene(window, angle_x, angle_y); // Wykonaj procedurę rysującą
