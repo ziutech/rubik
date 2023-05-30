@@ -2,13 +2,13 @@
 
 out vec4 pixelColor; //Zmienna wyjsciowa fragment shadera. Zapisuje sie do niej ostateczny (prawie) kolor piksela
 
-const vec3 lightAmbient       = vec3(0.9);
+const vec3 lightAmbient       = vec3(0.1);
 const vec3 lightDiffusion     = vec3(0.9);
 const vec3 lightSpecular      = vec3(0.9);
 
 const vec3 ambientReflection  = vec3(1.0);
 const vec3 diffuseReflection  = vec3(1.0);
-const vec3 specularReflection = vec3(1.0);
+const vec3 specularReflection = vec3(0.5);
 const float shininess = 60;
 
 in vec4 pointL;
@@ -26,8 +26,8 @@ void main(void) {
 	float rv = pow(clamp(dot(r,  pointVn), 0, 1), shininess); // Kosinus kąta pomiędzy wektorami r i v podniesiony do 25 potęgi
 
   vec3 ip = ambientReflection * lightAmbient;
-  ip += diffuseReflection * lightDiffusion * nl;
+  ip += iC.rgb * lightDiffusion * nl;
   ip += specularReflection * lightSpecular * rv;
 
-	pixelColor = vec4(ip * iC.rgb, iC.a);
+	pixelColor = vec4(ip.rgb, 1.0);
 }

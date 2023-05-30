@@ -17,6 +17,7 @@ jeśli nie - napisz do Free Software Foundation, Inc., 59 Temple
 Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 */
 
+#include <cstdlib>
 #include <glm/ext/matrix_transform.hpp>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_SWIZZLE
@@ -99,7 +100,7 @@ void obj3dmodel::draw() {
   glVertexAttribIPointer(sp->a("group"), 1, GL_UNSIGNED_INT, 0, groups.data());
 
   glEnableVertexAttribArray(sp->a("normal"));
-  glVertexAttribIPointer(sp->a("normal"), 4, GL_FLOAT, 0, norms.data());
+  glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, norms.data());
 
   glDrawArrays(GL_TRIANGLES, 0, verts.size() / 4);
 
@@ -166,7 +167,7 @@ void obj3dmodel::from_file(const char *filename) {
         ss >> vn;
         faces.push_back(v - 1);
         verts.insert(verts.end(), ver[v - 1].begin(), ver[v - 1].end());
-        norms.insert(norms.end(), nrm[v - 1].begin(), nrm[v - 1].end());
+        norms.insert(norms.end(), nrm[vn - 1].begin(), nrm[vn - 1].end());
         texCoords.insert(texCoords.end(), vts[vt - 1].begin(),
                          vts[vt - 1].end());
         groups.push_back(group);
