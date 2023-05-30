@@ -60,6 +60,18 @@ float *texCoords = myTeapotTexCoords;
 float *colors = myTeapotColors;
 int vertexCount = myTeapotVertexCount;
 
+float wall_colors[] = {
+    1.0, 1.0, 1.0, 0.0, // brzegi
+    1.0, 0.0, 0.0, 0.0, // sciana 1
+    0.0, 1.0, 0.0, 0.0, // sciana 2
+    0.0, 0.0, 1.0, 0.0, // sciana 3
+    1.0, 1.0, 0.0, 0.0, // sciana 4
+    0.0, 1.0, 1.0, 0.0, // sciana 5
+    1.0, 0.0, 1.0, 0.0, // sciana 6
+};
+
+GLuint edgeAmbient, edgeBase, edgeHeight, edgeNormal, edgeRoughness;
+
 // Procedura obsługi błędów
 void error_callback(int error, const char *description) {
   fputs(description, stderr);
@@ -83,37 +95,64 @@ struct obj3dmodel {
   std::vector<float> norms;
   std::vector<float> texCoords;
   std::vector<unsigned int> faces;
-  std::array<float, 4 * 7> wall_colors;
+  std::array<int, 7> wall_mapping;
 
   void from_file(const char *filename);
   void draw();
-  void set_wall_colors(std::array<float, 4 * 7> wall_colors);
+  void set_wall_mapping(std::array<int, 7> wall_colors);
 };
 
 void obj3dmodel::draw() {
-  glUniform4fv(sp->u("wall_colors"), 4 * 7, wall_colors.data());
+  glUniform4fv(sp->u("wall_colors"), 4 * 7, wall_colors);
+  glUniform1iv(sp->u("wall_mapping"), 7, wall_mapping.data());
 
   glEnableVertexAttribArray(sp->a("vertex"));
   glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, verts.data());
 
   glEnableVertexAttribArray(sp->a("group"));
-  glVertexAttribIPointer(sp->a("group"), 1, GL_UNSIGNED_INT, 0, groups.data());
+  glVertexAttribIPointer(sp->a("group"), 1, GL_INT, 0, groups.data());
 
   glEnableVertexAttribArray(sp->a("normal"));
   glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, norms.data());
+
+  glEnableVertexAttribArray(sp->a("texCoord"));
+  glVertexAttribPointer(sp->a("texCoord"), 2, GL_FLOAT, false, 0,
+                        texCoords.data());
+
+  glUniform1i(sp->u("edgeAmbient"), 0);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, edgeAmbient);
+
+  glUniform1i(sp->u("edgeBase"), 1);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, edgeBase);
+
+  glUniform1i(sp->u("edgeHeight"), 2);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, edgeHeight);
+
+  glUniform1i(sp->u("edgeNormal"), 3);
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, edgeNormal);
+
+  glUniform1i(sp->u("edgeRoughness"), 4);
+  glActiveTexture(GL_TEXTURE4);
+  glBindTexture(GL_TEXTURE_2D, edgeNormal);
 
   glDrawArrays(GL_TRIANGLES, 0, verts.size() / 4);
 
   glDisableVertexAttribArray(
       sp->a("vertex")); // Wyłącz przesyłanie danych do atrybutu vertex
   glDisableVertexAttribArray(
+      sp->a("texCoord")); // Wyłącz przesyłanie danych do atrybutu vertex
+  glDisableVertexAttribArray(
       sp->a("normal")); // Wyłącz przesyłanie danych do atrybutu vertex
   glDisableVertexAttribArray(
       sp->a("group")); // Wyłącz przesyłanie danych do atrybutu color
 }
 
-void obj3dmodel::set_wall_colors(std::array<float, 4 * 7> wall_colors) {
-  this->wall_colors = wall_colors;
+void obj3dmodel::set_wall_mapping(std::array<int, 7> wall_mapping) {
+  this->wall_mapping = wall_mapping;
 }
 
 void obj3dmodel::from_file(const char *filename) {
@@ -234,20 +273,26 @@ obj3dmodel kostka;
 void initOpenGLProgram(GLFWwindow *window) {
   //************Tutaj umieszczaj kod, który należy wykonać raz, na początku
   // programu************
-  glClearColor(0, 0, 0, 1);
+  glClearColor(1, 1, 1, 1);
   glEnable(GL_DEPTH_TEST);
   glfwSetWindowSizeCallback(window, windowResizeCallback);
   glfwSetKeyCallback(window, keyCallback);
 
+  edgeBase      = readTexture("higher_res/Plastic_Rough_001_basecolor.png");
+  edgeAmbient   = readTexture("higher_res/Plastic_Rough_001_ambientOcculsion.png");
+  edgeHeight    = readTexture("higher_res/Plastic_Rough_001_height.png");
+  edgeNormal    = readTexture("higher_res/Plastic_Rough_001_normal.png");
+  edgeRoughness = readTexture("higher_res/Plastic_Rough_001_roughness.png");
+
   kostka.from_file("kostka.obj");
-  kostka.set_wall_colors({
-      1.0, 1.0, 1.0, 0.0, // brzegi
-      1.0, 0.0, 0.0, 0.0, // sciana 1
-      0.0, 1.0, 0.0, 0.0, // sciana 2
-      0.0, 0.0, 1.0, 0.0, // sciana 3
-      1.0, 1.0, 0.0, 0.0, // sciana 4
-      0.0, 1.0, 1.0, 0.0, // sciana 5
-      1.0, 0.0, 1.0, 0.0, // sciana 6
+  kostka.set_wall_mapping({
+      0,
+      1,
+      0,
+      3,
+      4,
+      5,
+      6,
   });
   sp = new ShaderProgram("v_simplest.glsl", NULL /*  "g_simplest.glsl" */,
                          "f_simplest.glsl");
@@ -280,7 +325,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y) {
                   glm::vec3(1.0f, 0.0f, 0.0f)); // Wylicz macierz modelu
   M = glm::rotate(M, angle_x,
                   glm::vec3(0.0f, 1.0f, 0.0f)); // Wylicz macierz modelu
-  M = glm::scale(M, glm::vec3(0.5));
+  M = glm::scale(M, glm::vec3(1.0));
 
   sp->use(); // Aktywacja programu cieniującego
   // Przeslij parametry programu cieniującego do karty graficznej
