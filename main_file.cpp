@@ -273,15 +273,16 @@ obj3dmodel kostka;
 void initOpenGLProgram(GLFWwindow *window) {
   //************Tutaj umieszczaj kod, który należy wykonać raz, na początku
   // programu************
-  glClearColor(1, 1, 1, 1);
+  glClearColor(0, 0, 0, 1);
   glEnable(GL_DEPTH_TEST);
   glfwSetWindowSizeCallback(window, windowResizeCallback);
   glfwSetKeyCallback(window, keyCallback);
 
-  edgeBase      = readTexture("higher_res/Plastic_Rough_001_basecolor.png");
-  edgeAmbient   = readTexture("higher_res/Plastic_Rough_001_ambientOcculsion.png");
-  edgeHeight    = readTexture("higher_res/Plastic_Rough_001_height.png");
-  edgeNormal    = readTexture("higher_res/Plastic_Rough_001_normal.png");
+  edgeBase = readTexture("higher_res/Plastic_Rough_001_basecolor.png");
+  edgeAmbient =
+      readTexture("higher_res/Plastic_Rough_001_ambientOcculsion.png");
+  edgeHeight = readTexture("higher_res/Plastic_Rough_001_height.png");
+  edgeNormal = readTexture("higher_res/Plastic_Rough_001_normal.png");
   edgeRoughness = readTexture("higher_res/Plastic_Rough_001_roughness.png");
 
   kostka.from_file("kostka.obj");

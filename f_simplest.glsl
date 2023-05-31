@@ -12,12 +12,12 @@ uniform sampler2D edgeRoughness;
 
 const vec3 lightAmbient       = vec3(0.1);
 const vec3 lightDiffusion     = vec3(0.9);
-const vec3 lightSpecular      = vec3(0.9);
+const vec3 lightSpecular      = vec3(0.1);
 
 const vec3 ambientReflection  = vec3(1.0);
 const vec3 diffuseReflection  = vec3(1.0);
 const vec3 specularReflection = vec3(0.5);
-const float shininess = 60.0;
+const float shininess = 60;
 
 in vec4 pointL;
 in vec4 pointN;
@@ -29,6 +29,7 @@ flat in int igroup;
 
 void main(void) {
   int wmap = wall_mapping[igroup];
+  vec4 dirLight = normalize(vec4(0, 1, 0, 0));
   if(wmap == 0) {
     vec4 diffuse  = texture(edgeBase, itexCoord);
     vec4 ambient  = texture(edgeAmbient, itexCoord);
@@ -44,9 +45,15 @@ void main(void) {
 
     float nl = clamp(dot(pointNn, pointLn), 0, 1); //Kosinus kąta pomiędzy wektorami n i l.
     float rv = pow(clamp(dot(r,  pointVn), 0, 1), shininess); // Kosinus kąta pomiędzy wektorami r i v podniesiony do 25 potęgi
-    vec3 ip = ambient.rgb * lightAmbient;
+    vec3 ip = vec3(0.0);
     ip += diffuse.rgb * lightDiffusion * nl;
     ip += specularReflection * lightSpecular * rv;
+
+    nl = clamp(dot(pointNn, dirLight), 0, 1);
+    r = reflect(-dirLight, pointNn);
+    rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
+    ip += diffuse.rgb * lightDiffusion * nl;
+    ip += specularReflection * vec3(0.1) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   } else {
     vec4 pointLn = normalize(pointL);
@@ -58,10 +65,15 @@ void main(void) {
     float nl = clamp(dot(pointNn, pointLn), 0, 1); //Kosinus kąta pomiędzy wektorami n i l.
     float rv = pow(clamp(dot(r,  pointVn), 0, 1), shininess); // Kosinus kąta pomiędzy wektorami r i v podniesiony do 25 potęgi
 
-    vec3 ip = ambientReflection * lightAmbient;
+    vec3 ip = iC.rgb * lightAmbient;
     ip += iC.rgb * lightDiffusion * nl;
     ip += specularReflection * lightSpecular * rv;
 
+    nl = clamp(dot(pointNn, dirLight), 0, 1);
+    r = reflect(-dirLight, pointNn);
+    rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
+    ip += vec3(244, 233, 155)/255 * lightDiffusion * nl;
+    ip += specularReflection * vec3(0.01) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   }
 }
