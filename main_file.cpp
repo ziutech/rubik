@@ -119,6 +119,13 @@ void obj3dmodel::draw() {
   glEnableVertexAttribArray(sp->a("normal"));
   glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, norms.data());
 
+  glEnableVertexAttribArray(sp->a("c1"));
+  glVertexAttribPointer(sp->a("c1"), 4, GL_FLOAT, false, 0, modelC1.data());
+  glEnableVertexAttribArray(sp->a("c2"));
+  glVertexAttribPointer(sp->a("c2"), 4, GL_FLOAT, false, 0, modelC2.data());
+  glEnableVertexAttribArray(sp->a("c3"));
+  glVertexAttribPointer(sp->a("c3"), 4, GL_FLOAT, false, 0, modelC3.data());
+
   glEnableVertexAttribArray(sp->a("texCoord"));
   glVertexAttribPointer(sp->a("texCoord"), 2, GL_FLOAT, false, 0,
                         texCoords.data());
@@ -235,9 +242,9 @@ void obj3dmodel::from_file(const char *filename) {
       t.y = f * (c31.y * v21.y - c21.y * v31.y);
       t.z = f * (c31.y * v21.z - c21.y * v31.z);
       glm::vec3 b;
-      b.x = f * (c31.x * v21.x + c21.x * v31.x);
-      b.y = f * (c31.x * v21.y + c21.x * v31.y);
-      b.z = f * (c31.x * v21.z + c21.x * v31.z);
+      b.x = f * (-c31.x * v21.x + c21.x * v31.x);
+      b.y = f * (-c31.x * v21.y + c21.x * v31.y);
+      b.z = f * (-c31.x * v21.z + c21.x * v31.z);
       glm::vec3 n = glm::cross(t, b);
 
       t = glm::normalize(t);

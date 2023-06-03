@@ -38,7 +38,7 @@ void main(void) {
     vec4 roughness = texture(edgeRoughness, itexCoord);
 
     vec4 pointLn = normalize(pointL);
-    vec4 pointNn = normalize(pointN);
+    vec4 pointNn = normalize(vec4(normal.rgb * 2 - 1, 0));
     vec4 pointVn = normalize(pointV);
     vec4 r = reflect(-pointLn, pointNn); //Wektor odbity
     vec4 iC = wall_colors[wmap];
@@ -50,11 +50,11 @@ void main(void) {
     ip += diffuse.rgb * lightDiffusion * nl;
     ip += specularReflection * lightSpecular * rv;
 
-    nl = clamp(dot(pointNn, dirLight), 0, 1);
-    r = reflect(-dirLight, pointNn);
-    rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
-    ip += diffuse.rgb * lightDiffusion * nl;
-    ip += specularReflection * vec3(0.1) * rv;
+    // nl = clamp(dot(pointNn, dirLight), 0, 1);
+    // r = reflect(-dirLight, pointNn);
+    // rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
+    // ip += diffuse.rgb * lightDiffusion * nl;
+    // ip += specularReflection * vec3(0.1) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   } else {
     vec4 pointLn = normalize(pointL);
@@ -70,11 +70,11 @@ void main(void) {
     ip += iC.rgb * lightDiffusion * nl;
     ip += specularReflection * lightSpecular * rv;
 
-    nl = clamp(dot(pointNn, dirLight), 0, 1);
-    r = reflect(-dirLight, pointNn);
-    rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
-    ip += vec3(244, 233, 155)/255 * lightDiffusion * nl;
-    ip += specularReflection * vec3(0.01) * rv;
+    // nl = clamp(dot(pointNn, dirLight), 0, 1);
+    // r = reflect(-dirLight, pointNn);
+    // rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
+    // ip += vec3(244, 233, 155)/255 * lightDiffusion * nl;
+    // ip += specularReflection * vec3(0.01) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   }
 }
