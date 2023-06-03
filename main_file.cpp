@@ -19,6 +19,7 @@ Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include <cstdlib>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/matrix.hpp>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_SWIZZLE
 
@@ -94,6 +95,9 @@ struct obj3dmodel {
   std::vector<unsigned int> groups;
   std::vector<glm::vec4> norms;
   std::vector<glm::vec2> texCoords;
+  std::vector<glm::vec4> modelC1;
+  std::vector<glm::vec4> modelC2;
+  std::vector<glm::vec4> modelC3;
   std::vector<unsigned int> faces;
   std::array<int, 7> wall_mapping;
 
@@ -209,6 +213,41 @@ void obj3dmodel::from_file(const char *filename) {
         norms.push_back(nrm[vn - 1]);
         texCoords.push_back(vts[vt - 1]);
         groups.push_back(group);
+      }
+      unsigned int size = verts.size();
+      auto v1 = verts[size - 1];
+      auto v2 = verts[size - 2];
+      auto v3 = verts[size - 3];
+      auto v21 = v2 - v1;
+      auto v31 = v3 - v1;
+
+      auto c1 = texCoords[size - 1];
+      auto c2 = texCoords[size - 2];
+      auto c3 = texCoords[size - 3];
+
+      auto c21 = c2 - c1;
+      auto c31 = c3 - c1;
+
+      float f = 1.0f / (c21.x * c31.y - c31.x * c21.y);
+
+      glm::vec3 t;
+      t.x = f * (c31.y * v21.x - c21.y * v31.x);
+      t.y = f * (c31.y * v21.y - c21.y * v31.y);
+      t.z = f * (c31.y * v21.z - c21.y * v31.z);
+      glm::vec3 b;
+      b.x = f * (c31.x * v21.x + c21.x * v31.x);
+      b.y = f * (c31.x * v21.y + c21.x * v31.y);
+      b.z = f * (c31.x * v21.z + c21.x * v31.z);
+      glm::vec3 n = glm::cross(t, b);
+
+      t = glm::normalize(t);
+      b = glm::normalize(b);
+      n = glm::normalize(n);
+
+      for (int i = 0; i < 3; i++) {
+        modelC1.push_back(glm::vec4(t.x, b.x, n.x, 0));
+        modelC2.push_back(glm::vec4(t.y, b.y, n.y, 0));
+        modelC3.push_back(glm::vec4(t.z, b.z, n.z, 0));
       }
     }
   }
