@@ -44,7 +44,8 @@ void main(void) {
     vec4 iC = wall_colors[wmap];
 
     float nl = clamp(dot(pointNn, pointLn), 0, 1); //Kosinus kąta pomiędzy wektorami n i l.
-    float rv = pow(clamp(dot(r,  pointVn), 0, 1), shininess); // Kosinus kąta pomiędzy wektorami r i v podniesiony do 25 potęgi
+    // roughness -> shiness: https://computergraphics.stackexchange.com/a/1517
+    float rv = pow(clamp(dot(r,  pointVn), 0, 1), 2.0 / pow(roughness.r, 2) - 2); 
     vec3 ip = vec3(0.0);
     ip += diffuse.rgb * lightDiffusion * nl;
     ip += specularReflection * lightSpecular * rv;
