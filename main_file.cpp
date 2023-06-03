@@ -326,7 +326,7 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y) {
                   glm::vec3(1.0f, 0.0f, 0.0f)); // Wylicz macierz modelu
   M = glm::rotate(M, angle_x,
                   glm::vec3(0.0f, 1.0f, 0.0f)); // Wylicz macierz modelu
-  M = glm::scale(M, glm::vec3(1.0));
+  M = glm::scale(M, glm::vec3(0.3));
 
   sp->use(); // Aktywacja programu cieniującego
   // Przeslij parametry programu cieniującego do karty graficznej
@@ -352,7 +352,7 @@ int main(void) {
   }
 
   window = glfwCreateWindow(
-      500, 500, "OpenGL", NULL,
+      1080, 1080, "OpenGL", NULL,
       NULL); // Utwórz okno 500x500 o tytule "OpenGL" i kontekst OpenGL.
 
   if (!window) // Jeżeli okna nie udało się utworzyć, to zamknij program

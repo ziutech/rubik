@@ -12,7 +12,7 @@ uniform sampler2D edgeRoughness;
 
 const vec3 lightAmbient       = vec3(0.1);
 const vec3 lightDiffusion     = vec3(0.9);
-const vec3 lightSpecular      = vec3(0.1);
+const vec3 lightSpecular      = vec3(0.3);
 
 const vec3 ambientReflection  = vec3(1.0);
 const vec3 diffuseReflection  = vec3(1.0);
@@ -46,7 +46,7 @@ void main(void) {
     float nl = clamp(dot(pointNn, pointLn), 0, 1); //Kosinus kąta pomiędzy wektorami n i l.
     // roughness -> shiness: https://computergraphics.stackexchange.com/a/1517
     float rv = pow(clamp(dot(r,  pointVn), 0, 1), 2.0 / pow(roughness.r, 2) - 2); 
-    vec3 ip = vec3(0.0);
+    vec3 ip = vec3(1.0) * lightAmbient;
     ip += diffuse.rgb * lightDiffusion * nl;
     ip += specularReflection * lightSpecular * rv;
 
