@@ -24,12 +24,12 @@ in vec4 pointN;
 in vec4 pointV;
 in vec4 iC;
 in vec2 itexCoord;
+in vec4 dirLight;
 
 flat in int igroup;
 
 void main(void) {
   int wmap = wall_mapping[igroup];
-  vec4 dirLight = normalize(vec4(0, 1, 0, 0));
   if(wmap == 0) {
     vec4 diffuse  = texture(edgeBase, itexCoord);
     vec4 ambient  = texture(edgeAmbient, itexCoord);
@@ -50,11 +50,11 @@ void main(void) {
     ip += diffuse.rgb * lightDiffusion * nl;
     ip += specularReflection * lightSpecular * rv;
 
-    // nl = clamp(dot(pointNn, dirLight), 0, 1);
-    // r = reflect(-dirLight, pointNn);
-    // rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
-    // ip += diffuse.rgb * lightDiffusion * nl;
-    // ip += specularReflection * vec3(0.1) * rv;
+    nl = clamp(dot(pointNn, dirLight), 0, 1);
+    r = reflect(-dirLight, pointNn);
+    rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
+    ip += diffuse.rgb * lightDiffusion * nl;
+    ip += specularReflection * vec3(0.1) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   } else {
     vec4 pointLn = normalize(pointL);
@@ -70,11 +70,11 @@ void main(void) {
     ip += iC.rgb * lightDiffusion * nl;
     ip += specularReflection * lightSpecular * rv;
 
-    // nl = clamp(dot(pointNn, dirLight), 0, 1);
-    // r = reflect(-dirLight, pointNn);
-    // rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
-    // ip += vec3(244, 233, 155)/255 * lightDiffusion * nl;
-    // ip += specularReflection * vec3(0.01) * rv;
+    nl = clamp(dot(pointNn, dirLight), 0, 1);
+    r = reflect(-dirLight, pointNn);
+    rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
+    ip += vec3(244, 233, 155)/255 * lightDiffusion * nl;
+    ip += specularReflection * vec3(0.01) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   }
 }

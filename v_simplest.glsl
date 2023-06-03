@@ -20,6 +20,7 @@ out vec2 itexCoord;
 out vec4 pointL;
 out vec4 pointN;
 out vec4 pointV;
+out vec4 dirLight;
 flat out int igroup;
 
 void main(void) {
@@ -31,5 +32,6 @@ void main(void) {
     pointV = normalize(invTBN * (inverse(V * M) * vec4(0, 0, 0, 1) - vertex));
     igroup = group;
     itexCoord = texCoord;
+    dirLight = invTBN * inverse(M) * vec4(0, 1, 0, 0);
     gl_Position=P*V*M*vertex;
 }
