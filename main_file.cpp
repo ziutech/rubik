@@ -90,10 +90,10 @@ public:
 };
 
 struct obj3dmodel {
-  std::vector<float> verts;
+  std::vector<glm::vec4> verts;
   std::vector<unsigned int> groups;
-  std::vector<float> norms;
-  std::vector<float> texCoords;
+  std::vector<glm::vec4> norms;
+  std::vector<glm::vec2> texCoords;
   std::vector<unsigned int> faces;
   std::array<int, 7> wall_mapping;
 
@@ -139,7 +139,7 @@ void obj3dmodel::draw() {
   glActiveTexture(GL_TEXTURE4);
   glBindTexture(GL_TEXTURE_2D, edgeNormal);
 
-  glDrawArrays(GL_TRIANGLES, 0, verts.size() / 4);
+  glDrawArrays(GL_TRIANGLES, 0, verts.size());
 
   glDisableVertexAttribArray(
       sp->a("vertex")); // Wyłącz przesyłanie danych do atrybutu vertex
@@ -165,9 +165,9 @@ void obj3dmodel::from_file(const char *filename) {
   std::array<float, 4> v = {0, 0, 0, 1.0f};
   std::array<float, 2> t = {0};
   unsigned int group = 0;
-  std::vector<std::array<float, 4>> ver;
-  std::vector<std::array<float, 4>> nrm;
-  std::vector<std::array<float, 2>> vts;
+  std::vector<glm::vec4> ver;
+  std::vector<glm::vec4> nrm;
+  std::vector<glm::vec2> vts;
   while (getline(in, line)) {
     auto l = line.substr(0, 2);
     std::istringstream ss(line.substr(2));
@@ -176,17 +176,17 @@ void obj3dmodel::from_file(const char *filename) {
       ss >> v[1];
       ss >> v[2];
       v[3] = 1;
-      ver.push_back(v);
+      ver.push_back(glm::vec4(v[0], v[1], v[2], v[3]));
     } else if (l == "vn") {
       ss >> v[0];
       ss >> v[1];
       ss >> v[2];
       v[3] = 0;
-      nrm.push_back(v);
+      nrm.push_back(glm::vec4(v[0], v[1], v[2], v[3]));
     } else if (l == "vt") {
       ss >> t[0]; // u
       ss >> t[1]; // v
-      vts.push_back(t);
+      vts.push_back(glm::vec2(t[0], t[1]));
     } else if (l == "g ") {
       std::string s;
       ss >> s;
@@ -205,17 +205,16 @@ void obj3dmodel::from_file(const char *filename) {
         ss >> vt;
         ss >> vn;
         faces.push_back(v - 1);
-        verts.insert(verts.end(), ver[v - 1].begin(), ver[v - 1].end());
-        norms.insert(norms.end(), nrm[vn - 1].begin(), nrm[vn - 1].end());
-        texCoords.insert(texCoords.end(), vts[vt - 1].begin(),
-                         vts[vt - 1].end());
+        verts.push_back(ver[v - 1]);
+        norms.push_back(nrm[vn - 1]);
+        texCoords.push_back(vts[vt - 1]);
         groups.push_back(group);
       }
     }
   }
   assert(this->norms.size() == this->verts.size());
-  assert(this->texCoords.size() / 2 == this->verts.size() / 4);
-  assert(this->groups.size() == this->verts.size() / 4);
+  assert(this->texCoords.size() == this->verts.size());
+  assert(this->groups.size() == this->verts.size());
 }
 
 GLuint readTexture(const char *filename) {
