@@ -30,7 +30,7 @@ flat in int igroup;
 
 void main(void) {
   int wmap = wall_mapping[igroup];
-  if(wmap == 0) {
+  if((igroup == -1) || (wmap == 0)) {
     vec4 diffuse  = texture(edgeBase, itexCoord);
     vec4 ambient  = texture(edgeAmbient, itexCoord);
     vec4 height = texture(edgeHeight, itexCoord);

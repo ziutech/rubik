@@ -46,6 +46,7 @@ float speed_y = 0;
 float aspectRatio = 1;
 
 ShaderProgram *sp;
+ShaderProgram *highlight;
 
 // Odkomentuj, żeby rysować kostkę
 /*float* vertices = myCubeVertices;
@@ -92,7 +93,7 @@ public:
 
 struct obj3dmodel {
   std::vector<glm::vec4> verts;
-  std::vector<unsigned int> groups;
+  std::vector<int> groups;
   std::vector<glm::vec4> norms;
   std::vector<glm::vec2> texCoords;
   std::vector<glm::vec4> modelC1;
@@ -175,7 +176,7 @@ void obj3dmodel::from_file(const char *filename) {
   std::string line;
   std::array<float, 4> v = {0, 0, 0, 1.0f};
   std::array<float, 2> t = {0};
-  unsigned int group = 0;
+  int group = 0;
   std::vector<glm::vec4> ver;
   std::vector<glm::vec4> nrm;
   std::vector<glm::vec2> vts;
@@ -203,6 +204,8 @@ void obj3dmodel::from_file(const char *filename) {
       ss >> s;
       if (s == "face") {
         ss >> group;
+      } else if (s == "edge") {
+        group = -1;
       } else if (s == "off") {
         group = 0;
       } else {
@@ -320,6 +323,8 @@ void initOpenGLProgram(GLFWwindow *window) {
   // programu************
   glClearColor(1, 1, 1, 1);
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glfwSetWindowSizeCallback(window, windowResizeCallback);
   glfwSetKeyCallback(window, keyCallback);
 
@@ -342,6 +347,7 @@ void initOpenGLProgram(GLFWwindow *window) {
   });
   sp = new ShaderProgram("v_simplest.glsl", NULL /*  "g_simplest.glsl" */,
                          "f_simplest.glsl");
+  highlight = new ShaderProgram("v_highlight.glsl", NULL, "f_highlight.glsl");
 }
 
 // Zwolnienie zasobów zajętych przez program
@@ -350,6 +356,7 @@ void freeOpenGLProgram(GLFWwindow *window) {
   // pętli
   // głównej************
   delete sp;
+  delete highlight;
 }
 
 // Procedura rysująca zawartość sceny
@@ -381,6 +388,14 @@ void drawScene(GLFWwindow *window, float angle_x, float angle_y) {
   glUniform4fv(sp->u("camera"), 1, glm::value_ptr(camera));
   glUniform4fv(sp->u("lp"), 1, glm::value_ptr(camera));
 
+  kostka.draw();
+  M = glm::scale(M, glm::vec3(1.001));
+  highlight->use();
+  glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(P));
+  glUniformMatrix4fv(sp->u("V"), 1, false, glm::value_ptr(V));
+  glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
+  glUniform4fv(sp->u("camera"), 1, glm::value_ptr(camera));
+  glUniform4fv(sp->u("lp"), 1, glm::value_ptr(camera));
   kostka.draw();
 
   glfwSwapBuffers(window); // Przerzuć tylny bufor na przedni
