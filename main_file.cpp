@@ -52,23 +52,27 @@ int checkAngle[6];
 
 //tablica wektorów obrotu poszczególnych kosteczek
 
-glm::vec3 rotKostki[3][3][3] = {
-    {   // ściana gdzie środkowa kostka jest czerwona
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // poziomy rząd kostek nad czerwoną kostką
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)} // poziomy rząd kostek pod czerwoną kostką
-    },
-    {   //ściana pomiędzy
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // analogiczne jak wyżej
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}
-    },
-    {   // ściana gdzie środkowa kostka jest niebieska
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}, // analogicznie jak wyżej
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)},
-        {glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0)}
-    }
+glm::vec3 transKostki[27] = {
+       // ściana fioletowa
+        glm::vec3(1.94f, 1.94f, 1.94f), glm::vec3(0, 1.94f, 1.94f), glm::vec3(-1.94f, 1.94f, 1.94f),
+        glm::vec3(1.94f, 1.94f, 0), glm::vec3(0, 1.94f, 0), glm::vec3(-1.94f, 1.94f, 0),
+        glm::vec3(1.94f, 1.94f, -1.94f), glm::vec3(0, 1.94f, -1.94f), glm::vec3(-1.94f, 1.94f, -1.94f),
+       //ściana pomiędzy
+        glm::vec3(1.94f, 0, 1.94f), glm::vec3(0, 0, 1.94f), glm::vec3(-1.94f, 0, 1.94f),
+        glm::vec3(1.94f, 0, 0), glm::vec3(0, 0, 0), glm::vec3(-1.94f, 0, 0),
+        glm::vec3(1.94f, 0, -1.94f), glm::vec3(0, 0, -1.94f), glm::vec3(-1.94f, 0, -1.94f),
+       // ściana jasnoniebieska
+        glm::vec3(1.94f, -1.94f, 1.94f), glm::vec3(0, -1.94f, 1.94f), glm::vec3(-1.94f, -1.94f, 1.94f),
+        glm::vec3(1.94f, -1.94f, 0), glm::vec3(0, -1.94f, 0), glm::vec3(-1.94f, -1.94f, 0),
+        glm::vec3(1.94f, -1.94f, -1.94f), glm::vec3(0, -1.94f, -1.94f), glm::vec3(-1.94f, -1.94f, -1.94f),
 };
+
+glm::mat4 matKostki[27];
+
+void createMatKostki(glm::mat4 M)
+{
+    for (int i = 0; i < 27; i++) matKostki[i] = M;
+}
 
 ShaderProgram* sp;
 
@@ -227,20 +231,10 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
     int mods) {
     if (action == GLFW_PRESS) {
         if (key == GLFW_KEY_LEFT) {
-            canRotateWall = -1;
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    rotKostki[i][0][j][1] += 0.25;
-                }
-            }
+            
         }
         if (key == GLFW_KEY_RIGHT)
-            canRotateWall = 1;
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    rotKostki[i][0][j][1] += 0.25;
-                }
-            }
+            
         if (key == GLFW_KEY_UP)
             chooseWall -= 1;
         if (key == GLFW_KEY_DOWN)
@@ -356,6 +350,8 @@ void drawKostka(glm::mat4 M, glm::vec3 V) {
     kostka.draw();
 }
 
+bool firstInit = 1;
+
 // Procedura rysująca zawartość sceny
 void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
     //************Tutaj umieszczaj kod rysujący obraz******************l
@@ -369,12 +365,17 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
         50.0f); // Wylicz macierz rzutowania
 
     glm::mat4 M = glm::mat4(1.0f);
-    M = glm::rotate(M, angle_y,
+    V = glm::rotate(V, angle_y,
         glm::vec3(1.0f, 0.0f, 0.0f)); // Wylicz macierz modelu
-    M = glm::rotate(M, angle_x,
+    V = glm::rotate(V, angle_x,
         glm::vec3(0.0f, 1.0f, 0.0f)); // Wylicz macierz modelu
 
     M = glm::scale(M, glm::vec3(0.5));
+
+    if (firstInit == 1) {
+        createMatKostki(M);
+        firstInit = 0;
+    }
 
     sp->use(); // Aktywacja programu cieniującego
     // Przeslij parametry programu cieniującego do karty graficznej
@@ -383,6 +384,15 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
     glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
 
     kostka.draw();
+
+    for (int i = 0; i < 27; i++) {
+
+        glm::mat4 Mk = glm::translate(matKostki[i], transKostki[i]);
+
+        glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(Mk));
+
+        kostka.draw();
+    }
 
     /*kostka.draw();
 
@@ -393,33 +403,33 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
     glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
 
     kostka.draw();*/
-    if (chooseWall == 0 || chooseWall == 1) {
-        glm::mat4 Mf = M;
-        glm::mat4 Mjn = M;
-        if (chooseWall == 0) {
-            Mf = glm::translate(Mf, glm::vec3(0, 2, 0)); // obracana ściana fioletowa
-            Mf = glm::rotate(Mf, glm::radians(wallAngle[chooseWall]),
-                glm::vec3(0, 1, 0));
+    //if (chooseWall == 0 || chooseWall == 1) {
+    //    glm::mat4 Mf = M;
+    //    glm::mat4 Mjn = M;
+    //    if (chooseWall == 0) {
+    //        Mf = glm::translate(Mf, glm::vec3(0, 2, 0)); // obracana ściana fioletowa
+    //        Mf = glm::rotate(Mf, glm::radians(wallAngle[chooseWall]),
+    //            glm::vec3(0, 1, 0));
 
-            drawKostka(Mf, rotKostki[1][0][1]);
+    //        drawKostka(Mf, rotKostki[1][0][1]);
 
-            Mjn = glm::translate(Mjn, glm::vec3(0, -2, 0)); //ściana jasnoniebieska
+    //        Mjn = glm::translate(Mjn, glm::vec3(0, -2, 0)); //ściana jasnoniebieska
 
-            drawKostka(Mjn, rotKostki[1][2][1]);
-        }
-        else {
-            Mjn = glm::translate(Mjn, glm::vec3(0, -2, 0)); // obracana ściana jasnoniebieska
-            Mjn = glm::rotate(Mjn, glm::radians(wallAngle[chooseWall]),
-                glm::vec3(0, 1, 0));
+    //        drawKostka(Mjn, rotKostki[1][2][1]);
+    //    }
+    //    else {
+    //        Mjn = glm::translate(Mjn, glm::vec3(0, -2, 0)); // obracana ściana jasnoniebieska
+    //        Mjn = glm::rotate(Mjn, glm::radians(wallAngle[chooseWall]),
+    //            glm::vec3(0, 1, 0));
 
-            drawKostka(Mjn, rotKostki[1][2][1]);
+    //        drawKostka(Mjn, rotKostki[1][2][1]);
 
-            Mf = glm::translate(Mf, glm::vec3(0, 2, 0)); //ściana fioletowa
+    //        Mf = glm::translate(Mf, glm::vec3(0, 2, 0)); //ściana fioletowa
 
-            drawKostka(Mf, rotKostki[1][0][1]);
-        }
+    //        drawKostka(Mf, rotKostki[1][0][1]);
+    //    }
 
-    }
+    //}
 
     glfwSwapBuffers(window); // Przerzuć tylny bufor na przedni
 }
