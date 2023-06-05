@@ -432,6 +432,11 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(1, 0, 0));
             Mk = mulMat(Mk, Mp);
         }
+        if (chooseWall == 3 && posKostki[i][0] == -1) {
+            glm::mat4 Mp = glm::mat4(1.0f);
+            Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(1, 0, 0));
+            Mk = mulMat(Mk, Mp);
+        }
 
         Mk = glm::translate(Mk, transKostki[i]);
 
@@ -555,19 +560,50 @@ int main(void) {
                         if (posKostki[i][0] == -1 && posKostki[i][1] == 1 && posKostki[i][2] == 0)  newPosKostki[i] = { 0, 1, -1 };
                         if (posKostki[i][0] == 0 && posKostki[i][1] == 1 && posKostki[i][2] == 1)  newPosKostki[i] = { - 1, 1, 0};
                         if (posKostki[i][0] == 1 && posKostki[i][1] == 1 && posKostki[i][2] == 0)  newPosKostki[i] = { 0, 1, 1 };
+                        printf("%d, %d, %d\n", newPosKostki[i][0], newPosKostki[i][1], newPosKostki[i][2]);
                     }
-                    if (chooseWall == 1 && posKostki[i][1] == -1) {
+                    else if (chooseWall == 1 && posKostki[i][1] == -1) {
                         glm::mat4 M = glm::mat4(1.0f);
                         M = glm::rotate(M, glm::radians(-90.0f), glm::vec3(0, 1, 0));
                         matKostki[i] = mulMat(matKostki[i], M);
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == -1)  newPosKostki[i] = { 1, -1, 1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == -1)  newPosKostki[i] = { 1, -1, -1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == 1)  newPosKostki[i] = { -1, -1, -1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == 1)  newPosKostki[i] = { -1, -1, 1 };
+                        if (posKostki[i][0] == 0 && posKostki[i][1] == -1 && posKostki[i][2] == -1)  newPosKostki[i] = { 1, -1, 0 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == 0)  newPosKostki[i] = { 0, -1, -1 };
+                        if (posKostki[i][0] == 0 && posKostki[i][1] == -1 && posKostki[i][2] == 1)  newPosKostki[i] = { -1, -1, 0 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == 0)  newPosKostki[i] = { 0, -1, 1 };
                     }
-                    if (chooseWall == 2 && posKostki[i][0] == 1) {
+                    else if (chooseWall == 2 && posKostki[i][0] == 1) {
                         glm::mat4 M = glm::mat4(1.0f);
                         M = glm::rotate(M, glm::radians(-90.0f), glm::vec3(1, 0, 0));
                         matKostki[i] = mulMat(matKostki[i], M);
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == 1 && posKostki[i][2] == -1)  newPosKostki[i] = { 1, 1, 1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == 1 && posKostki[i][2] == 1)  newPosKostki[i] = { 1, -1, 1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == 1)  newPosKostki[i] = { 1, -1, -1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == -1)  newPosKostki[i] = { 1, 1, -1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == 1 && posKostki[i][2] == 0)  newPosKostki[i] = { 1, 0, 1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == 0 && posKostki[i][2] == 1)  newPosKostki[i] = { 1, -1, 0 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == 0)  newPosKostki[i] = { 1, 0, -1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == 0 && posKostki[i][2] == -1)  newPosKostki[i] = { 1, 1, 0 };
+                    }
+                    else if (chooseWall == 3 && posKostki[i][0] == -1) {
+                        glm::mat4 M = glm::mat4(1.0f);
+                        M = glm::rotate(M, glm::radians(-90.0f), glm::vec3(1, 0, 0));
+                        matKostki[i] = mulMat(matKostki[i], M);
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == 1 && posKostki[i][2] == -1)  newPosKostki[i] = { -1, 1, 1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == 1 && posKostki[i][2] == 1)  newPosKostki[i] = { -1, -1, 1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == 1)  newPosKostki[i] = { -1, -1, -1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == -1)  newPosKostki[i] = { -1, 1, -1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == 1 && posKostki[i][2] == 0)  newPosKostki[i] = { -1, 0, 1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == 0 && posKostki[i][2] == 1)  newPosKostki[i] = { -1, -1, 0 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == 0)  newPosKostki[i] = { -1, 0, -1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == 0 && posKostki[i][2] == -1)  newPosKostki[i] = { -1, 1, 0 };
                     }
                 }
                 posKostki = newPosKostki;
+                printf("\n");
             }
         }
         else if (canRotateWall == 1){ //w prawo
@@ -591,15 +627,44 @@ int main(void) {
                         if (posKostki[i][0] == -1 && posKostki[i][1] == 1 && posKostki[i][2] == 0)  newPosKostki[i] = { 0, 1, 1 };
                         if (posKostki[i][0] == 0 && posKostki[i][1] == 1 && posKostki[i][2] == 1)  newPosKostki[i] = { 1, 1, 0 };
                     }
-                    if (chooseWall == 1 && posKostki[i][1] == -1) {
+                    else if (chooseWall == 1 && posKostki[i][1] == -1) {
                         glm::mat4 M = glm::mat4(1.0f);
                         M = glm::rotate(M, glm::radians(90.0f), glm::vec3(0, 1, 0));
                         matKostki[i] = mulMat(matKostki[i], M);
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == 1)  newPosKostki[i] = { 1, -1, -1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == -1)  newPosKostki[i] = { -1, -1, -1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == -1)  newPosKostki[i] = { -1, -1, 1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == 1)  newPosKostki[i] = { 1, -1, 1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == 0)  newPosKostki[i] = { 0, -1, -1 };
+                        if (posKostki[i][0] == 0 && posKostki[i][1] == -1 && posKostki[i][2] == -1)  newPosKostki[i] = { -1, -1, 0 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == 0)  newPosKostki[i] = { 0, -1, 1 };
+                        if (posKostki[i][0] == 0 && posKostki[i][1] == -1 && posKostki[i][2] == 1)  newPosKostki[i] = { 1, -1, 0 };
                     }
-                    if (chooseWall == 2 && posKostki[i][0] == 1) {
+                    else if (chooseWall == 2 && posKostki[i][0] == 1) {
                         glm::mat4 M = glm::mat4(1.0f);
                         M = glm::rotate(M, glm::radians(90.0f), glm::vec3(1, 0, 0));
                         matKostki[i] = mulMat(matKostki[i], M);
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == 1 && posKostki[i][2] == 1)  newPosKostki[i] = { 1, 1, -1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == 1)  newPosKostki[i] = { 1, 1, 1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == -1)  newPosKostki[i] = { 1, -1, 1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == 1 && posKostki[i][2] == -1) newPosKostki[i] = { 1, -1, -1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == 0 && posKostki[i][2] == 1)  newPosKostki[i] = { 1, 1, 0 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == -1 && posKostki[i][2] == 1)  newPosKostki[i] = { 1, 0, 1 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == 0 && posKostki[i][2] == -1)  newPosKostki[i] = { 1, -1, 0 };
+                        if (posKostki[i][0] == 1 && posKostki[i][1] == 1 && posKostki[i][2] == 0)  newPosKostki[i] = { 1, 0, -1 };
+                    }
+                    else if (chooseWall == 3 && posKostki[i][0] == -1) {
+                        glm::mat4 M = glm::mat4(1.0f);
+                        M = glm::rotate(M, glm::radians(90.0f), glm::vec3(1, 0, 0));
+                        matKostki[i] = mulMat(matKostki[i], M);
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == 1 && posKostki[i][2] == 1)  newPosKostki[i] = { -1, 1, -1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == 1)  newPosKostki[i] = { -1, 1, 1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == -1)  newPosKostki[i] = { -1, -1, 1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == 1 && posKostki[i][2] == -1)  newPosKostki[i] = { -1, -1, -1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == 0 && posKostki[i][2] == 1)  newPosKostki[i] = { -1, 1, 0 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == -1 && posKostki[i][2] == 0)  newPosKostki[i] = { -1, 0, 1 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == 0 && posKostki[i][2] == -1)  newPosKostki[i] = { -1, -1, 0 };
+                        if (posKostki[i][0] == -1 && posKostki[i][1] == 1 && posKostki[i][2] == 0)  newPosKostki[i] = { -1, 0, -1 };
                     }
                 }
                 posKostki = newPosKostki;
