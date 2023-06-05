@@ -46,9 +46,9 @@ float aspectRatio = 1;
 float angle_x = 0; // Aktualny kąt obrotu obiektu
 float angle_y = 0; // Aktualny kąt obrotu obiektu
 int canRotateWall = 0;
-float wallAngle[6] = {0, 0, 0, 0, 0, 0}; // Aktualny kąt obrotu ściany
+float wallAngle = 0; // Aktualny kąt obrotu ściany
 int chooseWall = 0; //wybór ściany
-int checkAngle[6];
+int checkAngle;
 
 //tablica wektorów obrotu poszczególnych kosteczek
 
@@ -65,6 +65,21 @@ glm::vec3 transKostki[27] = {
         glm::vec3(1.94f, -1.94f, 1.94f), glm::vec3(0, -1.94f, 1.94f), glm::vec3(-1.94f, -1.94f, 1.94f),
         glm::vec3(1.94f, -1.94f, 0), glm::vec3(0, -1.94f, 0), glm::vec3(-1.94f, -1.94f, 0),
         glm::vec3(1.94f, -1.94f, -1.94f), glm::vec3(0, -1.94f, -1.94f), glm::vec3(-1.94f, -1.94f, -1.94f),
+};
+
+glm::vec3 posKostki[27] = {
+    // ściana fioletowa
+     glm::vec3(1, 1, 1), glm::vec3(0, 1, 1), glm::vec3(-1, 1, 1),
+     glm::vec3(1, 1, 0), glm::vec3(0, 1, 0), glm::vec3(-1, 1, 0),
+     glm::vec3(1, 1, -1), glm::vec3(0, 1, -1), glm::vec3(-1, 1, -1),
+     //ściana pomiędzy
+      glm::vec3(1, 0, 1), glm::vec3(0, 0, 1), glm::vec3(-1, 0, 1),
+      glm::vec3(1, 0, 0), glm::vec3(0, 0, 0), glm::vec3(-1, 0, 0),
+      glm::vec3(1, 0, -1), glm::vec3(0, 0, -1), glm::vec3(-1, 0, -1),
+      // ściana jasnoniebieska
+       glm::vec3(1, -1, 1), glm::vec3(0, -1, 1), glm::vec3(-1, -1, 1),
+       glm::vec3(1, -1, 0), glm::vec3(0, -1, 0), glm::vec3(-1, -1, 0),
+       glm::vec3(1, -1, -1), glm::vec3(0, -1, -1), glm::vec3(-1, -1, -1),
 };
 
 glm::mat4 matKostki[27];
@@ -231,10 +246,11 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
     int mods) {
     if (action == GLFW_PRESS) {
         if (key == GLFW_KEY_LEFT) {
-            
+            canRotateWall = 1;
         }
-        if (key == GLFW_KEY_RIGHT)
-            
+        if (key == GLFW_KEY_RIGHT) {
+            canRotateWall = -1;
+        }
         if (key == GLFW_KEY_UP)
             chooseWall -= 1;
         if (key == GLFW_KEY_DOWN)
@@ -387,7 +403,11 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 
     for (int i = 0; i < 27; i++) {
 
-        glm::mat4 Mk = glm::translate(matKostki[i], transKostki[i]);
+        glm::mat4 Mk = matKostki[i];
+
+        if (posKostki[i][1] == 1) Mk = glm::rotate(Mk, glm::radians(wallAngle), glm::vec3(0, 1, 0));
+
+        Mk = glm::translate(Mk, transKostki[i]);
 
         glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(Mk));
 
@@ -489,19 +509,19 @@ int main(void) {
 
         //printf("%f\n", angle_y);
         if (canRotateWall == -1) {
-            wallAngle[chooseWall] -= 5;
-            checkAngle[chooseWall] = static_cast<int>(wallAngle[chooseWall]);
-            if (checkAngle[chooseWall] % 90 == 0) {
+            wallAngle -= 5;
+            checkAngle = static_cast<int>(wallAngle);
+            if (checkAngle % 90 == 0) {
                 canRotateWall = 0;
-                wallAngle[chooseWall] = 0;
+                wallAngle = 0;
             }
         }
         else if (canRotateWall == 1){
-            wallAngle[chooseWall] += 5;
-            checkAngle[chooseWall] = static_cast<int>(wallAngle[chooseWall]);
-            if (checkAngle[chooseWall] % 90 == 0) {
+            wallAngle += 5;
+            checkAngle = static_cast<int>(wallAngle);
+            if (checkAngle % 90 == 0) {
                 canRotateWall = 0;
-                wallAngle[chooseWall] = 0;
+                wallAngle = 0;
             }
         }
 
