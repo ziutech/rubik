@@ -84,6 +84,29 @@ glm::vec3 posKostki[27] = {
 
 glm::mat4 matKostki[27];
 
+
+glm::mat4 mulMat(glm::mat4 mat1, glm::mat4 mat2)
+{
+    glm::mat4 rslt;
+
+   // printf("Multiplication of given two matrices is:\n");
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            rslt[i][j] = 0;
+
+            for (int k = 0; k < 4; k++) {
+                rslt[i][j] += mat1[i][k] * mat2[k][j];
+            }
+
+           // printf("%d\t", rslt[i][j]);
+        }
+
+       // printf("\n");
+    }
+    return rslt;
+}
+
 void createMatKostki(glm::mat4 M)
 {
     for (int i = 0; i < 27; i++) matKostki[i] = M;
@@ -246,10 +269,10 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
     int mods) {
     if (action == GLFW_PRESS) {
         if (key == GLFW_KEY_LEFT) {
-            canRotateWall = 1;
+            canRotateWall = -1;
         }
         if (key == GLFW_KEY_RIGHT) {
-            canRotateWall = -1;
+            canRotateWall = 1;
         }
         if (key == GLFW_KEY_UP)
             chooseWall -= 1;
@@ -514,6 +537,9 @@ int main(void) {
             if (checkAngle % 90 == 0) {
                 canRotateWall = 0;
                 wallAngle = 0;
+                for (int i = 0; i < 27; i++) {
+                    if(posKostki[i][1] == 1) matKostki[i] = glm::rotate(matKostki[i], glm::radians(-90.0f), glm::vec3(0, 1, 0));
+                }
             }
         }
         else if (canRotateWall == 1){
@@ -522,6 +548,14 @@ int main(void) {
             if (checkAngle % 90 == 0) {
                 canRotateWall = 0;
                 wallAngle = 0;
+                for (int i = 0; i < 27; i++) {
+                    if (posKostki[i][1] == 1) {
+                        glm::mat4 M = glm::mat4(1.0f);
+                        M = glm::rotate(M, glm::radians(45.0f), glm::vec3(1, 0, 0));
+                        matKostki[i] = mulMat(M, matKostki[i]);
+                        
+                    }
+                }
             }
         }
 
