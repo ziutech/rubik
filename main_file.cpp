@@ -713,7 +713,6 @@ int main(void) {
                     }
                 }
                 posKostki = newPosKostki;
-                printf("\n");
             }
         }
         else if (canRotateWall == 1){ //w prawo
