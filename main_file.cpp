@@ -17,7 +17,9 @@ jeśli nie - napisz do Free Software Foundation, Inc., 59 Temple
 Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 */
 
+#include <cstdlib>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/matrix.hpp>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_SWIZZLE
 
@@ -87,13 +89,15 @@ std::vector<std::vector<int>> newPosKostki;
 
 glm::mat4 matKostki[27];
 
+ShaderProgram *sp;
+ShaderProgram *highlight;
 
 glm::mat4 mulMat(glm::mat4 mat1, glm::mat4 mat2)
 {
     glm::mat4 rslt;
 
    // printf("Multiplication of given two matrices is:\n");
-
+  
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             rslt[i][j] = 0;
@@ -115,8 +119,6 @@ void createMatKostki(glm::mat4 M) //tworz macierze kostki
     for (int i = 0; i < 27; i++) matKostki[i] = M;
 }
 
-ShaderProgram* sp;
-
 // Odkomentuj, żeby rysować kostkę
 /*float* vertices = myCubeVertices;
 float* normals = myCubeNormals;
@@ -130,6 +132,18 @@ float* normals = myTeapotNormals;
 float* texCoords = myTeapotTexCoords;
 float* colors = myTeapotColors;
 int vertexCount = myTeapotVertexCount;
+
+float wall_colors[] = {
+    1.0, 1.0, 1.0, 0.0, // brzegi
+    1.0, 0.0, 0.0, 0.0, // sciana 1
+    0.0, 1.0, 0.0, 0.0, // sciana 2
+    0.0, 0.0, 1.0, 0.0, // sciana 3
+    1.0, 1.0, 0.0, 0.0, // sciana 4
+    0.0, 1.0, 1.0, 0.0, // sciana 5
+    1.0, 0.0, 1.0, 0.0, // sciana 6
+};
+
+GLuint edgeAmbient, edgeBase, edgeHeight, edgeNormal, edgeRoughness;
 
 // Procedura obsługi błędów
 void error_callback(int error, const char* description) {
@@ -149,104 +163,180 @@ public:
 };
 
 struct obj3dmodel {
-    std::vector<float> verts;
-    std::vector<unsigned int> groups;
-    std::vector<float> norms;
-    std::vector<float> texCoords;
-    std::vector<unsigned int> faces;
-    std::array<float, 4 * 7> wall_colors;
 
-    void from_file(const char* filename);
-    void draw();
-    void set_wall_colors(std::array<float, 4 * 7> wall_colors);
+  std::vector<glm::vec4> verts;
+  std::vector<int> groups;
+  std::vector<glm::vec4> norms;
+  std::vector<glm::vec2> texCoords;
+  std::vector<glm::vec4> modelC1;
+  std::vector<glm::vec4> modelC2;
+  std::vector<glm::vec4> modelC3;
+  std::vector<unsigned int> faces;
+  std::array<int, 7> wall_mapping;
+
+  void from_file(const char *filename);
+  void draw();
+  void set_wall_mapping(std::array<int, 7> wall_colors);
 };
 
 void obj3dmodel::draw() {
-    glUniform4fv(sp->u("wall_colors"), 4 * 7, wall_colors.data());
+  glUniform4fv(sp->u("wall_colors"), 4 * 7, wall_colors);
+  glUniform1iv(sp->u("wall_mapping"), 7, wall_mapping.data());
 
     glEnableVertexAttribArray(sp->a("vertex"));
     glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, verts.data());
 
-    glEnableVertexAttribArray(sp->a("group"));
-    glVertexAttribIPointer(sp->a("group"), 1, GL_UNSIGNED_INT, 0, groups.data());
 
-    glDrawArrays(GL_TRIANGLES, 0, verts.size() / 4);
+  glEnableVertexAttribArray(sp->a("group"));
+  glVertexAttribIPointer(sp->a("group"), 1, GL_INT, 0, groups.data());
 
-    glDisableVertexAttribArray(
-        sp->a("vertex")); // Wyłącz przesyłanie danych do atrybutu vertex
-    glDisableVertexAttribArray(
-        sp->a("color")); // Wyłącz przesyłanie danych do atrybutu color
-    glDisableVertexAttribArray(
-        sp->a("group")); // Wyłącz przesyłanie danych do atrybutu color
+  glEnableVertexAttribArray(sp->a("normal"));
+  glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, norms.data());
+
+  glEnableVertexAttribArray(sp->a("c1"));
+  glVertexAttribPointer(sp->a("c1"), 4, GL_FLOAT, false, 0, modelC1.data());
+  glEnableVertexAttribArray(sp->a("c2"));
+  glVertexAttribPointer(sp->a("c2"), 4, GL_FLOAT, false, 0, modelC2.data());
+  glEnableVertexAttribArray(sp->a("c3"));
+  glVertexAttribPointer(sp->a("c3"), 4, GL_FLOAT, false, 0, modelC3.data());
+
+  glEnableVertexAttribArray(sp->a("texCoord"));
+  glVertexAttribPointer(sp->a("texCoord"), 2, GL_FLOAT, false, 0,
+                        texCoords.data());
+
+  glUniform1i(sp->u("edgeAmbient"), 0);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, edgeAmbient);
+
+  glUniform1i(sp->u("edgeBase"), 1);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, edgeBase);
+
+  glUniform1i(sp->u("edgeHeight"), 2);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, edgeHeight);
+
+  glUniform1i(sp->u("edgeNormal"), 3);
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, edgeNormal);
+
+  glUniform1i(sp->u("edgeRoughness"), 4);
+  glActiveTexture(GL_TEXTURE4);
+  glBindTexture(GL_TEXTURE_2D, edgeNormal);
+
+  glDrawArrays(GL_TRIANGLES, 0, verts.size());
+
+  glDisableVertexAttribArray(
+      sp->a("vertex")); // Wyłącz przesyłanie danych do atrybutu vertex
+  glDisableVertexAttribArray(
+      sp->a("texCoord")); // Wyłącz przesyłanie danych do atrybutu vertex
+  glDisableVertexAttribArray(
+      sp->a("normal")); // Wyłącz przesyłanie danych do atrybutu vertex
+  glDisableVertexAttribArray(
+      sp->a("group")); // Wyłącz przesyłanie danych do atrybutu color
 }
 
-void obj3dmodel::set_wall_colors(std::array<float, 4 * 7> wall_colors) {
-    this->wall_colors = wall_colors;
+void obj3dmodel::set_wall_mapping(std::array<int, 7> wall_mapping) {
+  this->wall_mapping = wall_mapping;
 }
 
-void obj3dmodel::from_file(const char* filename) {
-    std::ifstream in(filename, std::ios::in);
-    if (!in) {
-        std::cerr << "Cannot open " << filename << std::endl;
-        exit(1);
+void obj3dmodel::from_file(const char *filename) {
+  std::ifstream in(filename, std::ios::in);
+  if (!in) {
+    std::cerr << "Cannot open " << filename << std::endl;
+    exit(1);
+  }
+  std::string line;
+  std::array<float, 4> v = {0, 0, 0, 1.0f};
+  std::array<float, 2> t = {0};
+  int group = 0;
+  std::vector<glm::vec4> ver;
+  std::vector<glm::vec4> nrm;
+  std::vector<glm::vec2> vts;
+  while (getline(in, line)) {
+    auto l = line.substr(0, 2);
+    std::istringstream ss(line.substr(2));
+    if (l == "v ") {
+      ss >> v[0];
+      ss >> v[1];
+      ss >> v[2];
+      v[3] = 1;
+      ver.push_back(glm::vec4(v[0], v[1], v[2], v[3]));
+    } else if (l == "vn") {
+      ss >> v[0];
+      ss >> v[1];
+      ss >> v[2];
+      v[3] = 0;
+      nrm.push_back(glm::vec4(v[0], v[1], v[2], v[3]));
+    } else if (l == "vt") {
+      ss >> t[0]; // u
+      ss >> t[1]; // v
+      vts.push_back(glm::vec2(t[0], t[1]));
+    } else if (l == "g ") {
+      std::string s;
+      ss >> s;
+      if (s == "face") {
+        ss >> group;
+      } else if (s == "edge") {
+        group = -1;
+      } else if (s == "off") {
+        group = 0;
+      } else {
+        throw("unrecognized group: \"" + s + "\"");
+      }
+    } else if (l == "f ") {
+      ss.imbue(std::locale(std::locale(), new slash_plus_space_locale));
+      for (int i = 0; i < 3; i++) {
+        int v, vt, vn;
+        ss >> v;
+        ss >> vt;
+        ss >> vn;
+        faces.push_back(v - 1);
+        verts.push_back(ver[v - 1]);
+        norms.push_back(nrm[vn - 1]);
+        texCoords.push_back(vts[vt - 1]);
+        groups.push_back(group);
+      }
+      unsigned int size = verts.size();
+      auto v1 = verts[size - 1];
+      auto v2 = verts[size - 2];
+      auto v3 = verts[size - 3];
+      auto v21 = v2 - v1;
+      auto v31 = v3 - v1;
+
+      auto c1 = texCoords[size - 1];
+      auto c2 = texCoords[size - 2];
+      auto c3 = texCoords[size - 3];
+
+      auto c21 = c2 - c1;
+      auto c31 = c3 - c1;
+
+      float f = 1.0f / (c21.x * c31.y - c31.x * c21.y);
+
+      glm::vec3 t;
+      t.x = f * (c31.y * v21.x - c21.y * v31.x);
+      t.y = f * (c31.y * v21.y - c21.y * v31.y);
+      t.z = f * (c31.y * v21.z - c21.y * v31.z);
+      glm::vec3 b;
+      b.x = f * (-c31.x * v21.x + c21.x * v31.x);
+      b.y = f * (-c31.x * v21.y + c21.x * v31.y);
+      b.z = f * (-c31.x * v21.z + c21.x * v31.z);
+      glm::vec3 n = glm::cross(t, b);
+
+      t = glm::normalize(t);
+      b = glm::normalize(b);
+      n = glm::normalize(n);
+
+      for (int i = 0; i < 3; i++) {
+        modelC1.push_back(glm::vec4(t.x, b.x, n.x, 0));
+        modelC2.push_back(glm::vec4(t.y, b.y, n.y, 0));
+        modelC3.push_back(glm::vec4(t.z, b.z, n.z, 0));
+      }
     }
-    std::string line;
-    std::array<float, 4> v = { 0, 0, 0, 1.0f };
-    std::array<float, 2> t = { 0 };
-    unsigned int group = 0;
-    std::vector<std::array<float, 4>> ver;
-    std::vector<std::array<float, 2>> vts;
-    while (getline(in, line)) {
-        auto l = line.substr(0, 2);
-        std::istringstream ss(line.substr(2));
-        if (l == "v ") {
-            ss >> v[0];
-            ss >> v[1];
-            ss >> v[2];
-            v[3] = 1;
-            ver.push_back(v);
-        }
-        else if (l == "vn") {
-            ss >> v[0];
-            ss >> v[1];
-            ss >> v[2];
-            norms.insert(norms.end(), std::begin(v), std::end(v) - 1);
-        }
-        else if (l == "vt") {
-            ss >> t[0]; // u
-            ss >> t[1]; // v
-            vts.push_back(t);
-        }
-        else if (l == "g ") {
-            std::string s;
-            ss >> s;
-            if (s == "face") {
-                ss >> group;
-            }
-            else if (s == "off") {
-                group = 0;
-            }
-            else {
-                throw("unrecognized group: \"" + s + "\"");
-            }
-        }
-        else if (l == "f ") {
-            ss.imbue(std::locale(std::locale(), new slash_plus_space_locale));
-            for (int i = 0; i < 3; i++) {
-                int v, vt, vn;
-                ss >> v;
-                ss >> vt;
-                ss >> vn;
-                faces.push_back(v - 1);
-                verts.insert(verts.end(), ver[v - 1].begin(), ver[v - 1].end());
-                texCoords.insert(texCoords.end(), vts[vt - 1].begin(),
-                    vts[vt - 1].end());
-                groups.push_back(group);
-            }
-        }
-    }
-    assert(this->texCoords.size() / 2 == this->verts.size() / 4);
-    assert(this->groups.size() == this->verts.size() / 4);
+  }
+  assert(this->norms.size() == this->verts.size());
+  assert(this->texCoords.size() == this->verts.size());
+  assert(this->groups.size() == this->verts.size());
 }
 
 GLuint readTexture(const char* filename) {
@@ -350,37 +440,51 @@ void windowResizeCallback(GLFWwindow* window, int width, int height) {
 obj3dmodel kostka;
 
 // Procedura inicjująca
-void initOpenGLProgram(GLFWwindow* window) {
-    //************Tutaj umieszczaj kod, który należy wykonać raz, na początku
-    // programu************
-    glClearColor(0, 0, 0, 1);
-    glEnable(GL_DEPTH_TEST);
-    glfwSetWindowSizeCallback(window, windowResizeCallback);
-    glfwSetKeyCallback(window, keyCallback);
-    glfwSetCursorEnterCallback(window, cursor_enter_callback); //ustaw sprawdzenie czy myszka jest w oknie
-    glfwSetMouseButtonCallback(window, mouse_button_callback); //obsługa przycisków myszy
 
-    kostka.from_file("kostka.obj");
-    kostka.set_wall_colors({
-        1.0, 1.0, 1.0, 0.0, // brzegi
-        1.0, 0.0, 0.0, 0.0, // sciana 1
-        0.0, 1.0, 0.0, 0.0, // sciana 2
-        0.0, 0.0, 1.0, 0.0, // sciana 3
-        1.0, 1.0, 0.0, 0.0, // sciana 4
-        0.0, 1.0, 1.0, 0.0, // sciana 5
-        1.0, 0.0, 1.0, 0.0, // sciana 6
-        });
-    sp = new ShaderProgram("v_simplest.glsl", NULL /*  "g_simplest.glsl" */,
-        "f_simplest.glsl");
+void initOpenGLProgram(GLFWwindow *window) {
+  //************Tutaj umieszczaj kod, który należy wykonać raz, na początku
+  // programu************
+  glClearColor(1, 1, 1, 1);
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glfwSetWindowSizeCallback(window, windowResizeCallback);
+  glfwSetKeyCallback(window, keyCallback);
+  glfwSetCursorEnterCallback(window, cursor_enter_callback); //ustaw sprawdzenie czy myszka jest w oknie
+  glfwSetMouseButtonCallback(window, mouse_button_callback); //obsługa przycisków myszy
+
+  edgeBase = readTexture("higher_res/Plastic_Rough_001_basecolor.png");
+  edgeAmbient =
+      readTexture("higher_res/Plastic_Rough_001_ambientOcclusion.png");
+  edgeHeight = readTexture("higher_res/Plastic_Rough_001_height.png");
+  edgeNormal = readTexture("higher_res/Plastic_Rough_001_normal.png");
+  edgeRoughness = readTexture("higher_res/Plastic_Rough_001_roughness.png");
+
+  kostka.from_file("kostka.obj");
+  kostka.set_wall_mapping({
+      0,
+      1,
+      0,
+      3,
+      4,
+      5,
+      6,
+  });
+  sp = new ShaderProgram("v_simplest.glsl", NULL /*  "g_simplest.glsl" */,
+                         "f_simplest.glsl");
+  highlight = new ShaderProgram("v_highlight.glsl", NULL, "f_highlight.glsl");
 }
 
 // Zwolnienie zasobów zajętych przez program
-void freeOpenGLProgram(GLFWwindow* window) {
-    //************Tutaj umieszczaj kod, który należy wykonać po zakończeniu
-    // pętli
-    // głównej************
-    delete sp;
+void freeOpenGLProgram(GLFWwindow *window) {
+  //************Tutaj umieszczaj kod, który należy wykonać po zakończeniu
+  // pętli
+  // głównej************
+  delete sp;
+  delete highlight;
+
 }
+
 
 bool firstInit = 1;
 
@@ -388,9 +492,11 @@ bool firstInit = 1;
 void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
     //************Tutaj umieszczaj kod rysujący obraz******************l
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+  
+    glm::vec3 camera = glm::vec3(0, 0, -6);
+  
     glm::mat4 V =
-        glm::lookAt(glm::vec3(0, 0, -6), glm::vec3(0, 0, 0),
+        glm::lookAt(camera, glm::vec3(0, 0, 0),
             glm::vec3(0.0f, 1.0f, 0.0f)); // Wylicz macierz widoku
 
     glm::mat4 P = glm::perspective(50.0f * PI / 180.0f, aspectRatio, 0.01f,
@@ -459,47 +565,11 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
         kostka.draw();
     }
 
-    /*kostka.draw();
-
-    M = glm::translate(M, glm::vec3(0, 2, 0));
-    M = glm::rotate(M, glm::radians(wallAngle),
-        glm::vec3(0, 1, 0));
-
-    glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
-
-    kostka.draw();*/
-    //if (chooseWall == 0 || chooseWall == 1) {
-    //    glm::mat4 Mf = M;
-    //    glm::mat4 Mjn = M;
-    //    if (chooseWall == 0) {
-    //        Mf = glm::translate(Mf, glm::vec3(0, 2, 0)); // obracana ściana fioletowa
-    //        Mf = glm::rotate(Mf, glm::radians(wallAngle[chooseWall]),
-    //            glm::vec3(0, 1, 0));
-
-    //        drawKostka(Mf, rotKostki[1][0][1]);
-
-    //        Mjn = glm::translate(Mjn, glm::vec3(0, -2, 0)); //ściana jasnoniebieska
-
-    //        drawKostka(Mjn, rotKostki[1][2][1]);
-    //    }
-    //    else {
-    //        Mjn = glm::translate(Mjn, glm::vec3(0, -2, 0)); // obracana ściana jasnoniebieska
-    //        Mjn = glm::rotate(Mjn, glm::radians(wallAngle[chooseWall]),
-    //            glm::vec3(0, 1, 0));
-
-    //        drawKostka(Mjn, rotKostki[1][2][1]);
-
-    //        Mf = glm::translate(Mf, glm::vec3(0, 2, 0)); //ściana fioletowa
-
-    //        drawKostka(Mf, rotKostki[1][0][1]);
-    //    }
-
-    //}
-
     glfwSwapBuffers(window); // Przerzuć tylny bufor na przedni
 }
 
 int main(void) {
+  
     GLFWwindow* window; // Wskaźnik na obiekt reprezentujący okno
 
     glfwSetErrorCallback(error_callback); // Zarejestruj procedurę obsługi błędów
