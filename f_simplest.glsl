@@ -73,7 +73,7 @@ void main(void) {
     nl = clamp(dot(pointNn, dirLight), 0, 1);
     r = reflect(-dirLight, pointNn);
     rv = pow(clamp(dot(r, pointVn), 0, 1), 1);
-    ip += vec3(244, 233, 155)/255 * lightDiffusion * nl;
+    ip += iC.rgb * lightDiffusion * nl;
     ip += specularReflection * vec3(0.5) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   }
