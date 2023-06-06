@@ -464,7 +464,7 @@ void initOpenGLProgram(GLFWwindow *window) {
   kostka.set_wall_mapping({
       0,
       1,
-      0,
+      2,
       3,
       4,
       5,
