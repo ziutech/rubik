@@ -52,9 +52,9 @@ void main(void) {
 
     nl = clamp(dot(pointNn, dirLight), 0, 1);
     r = reflect(-dirLight, pointNn);
-    rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
+    rv = pow(clamp(dot(r, pointVn), 0, 1), 1);
     ip += diffuse.rgb * lightDiffusion * nl;
-    ip += specularReflection * vec3(0.1) * rv;
+    ip += specularReflection * vec3(0.2) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   } else {
     vec4 pointLn = normalize(pointL);
@@ -72,9 +72,9 @@ void main(void) {
 
     nl = clamp(dot(pointNn, dirLight), 0, 1);
     r = reflect(-dirLight, pointNn);
-    rv = pow(clamp(dot(r, pointVn), 0, 1), shininess);
+    rv = pow(clamp(dot(r, pointVn), 0, 1), 1);
     ip += vec3(244, 233, 155)/255 * lightDiffusion * nl;
-    ip += specularReflection * vec3(0.01) * rv;
+    ip += specularReflection * vec3(0.5) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   }
 }
