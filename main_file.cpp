@@ -133,6 +133,21 @@ glm::vec3 transKostki[27] = {
         glm::vec3(1.94f, -1.94f, -1.94f), glm::vec3(0, -1.94f, -1.94f), glm::vec3(-1.94f, -1.94f, -1.94f),
 };
 
+int highlightKostki[27] = {
+  // sciana fioletowa
+  0, 0, 0, 
+  0, 0, 0, 
+  0, 0, 0, 
+  //sciana pomiedzy
+  0, 0, 0,
+  0, 0, 0, 
+  0, 0, 0, 
+  //scian jasnoniebieska
+  1, 1, 1, 
+  1, 1, 1, 
+  1, 1, 1,
+};
+
 std::vector<std::vector<int>> posKostki{ {
     // ściana fioletowa
     {1, 1, 1}, {0, 1, 1}, {-1, 1, 1 },
@@ -707,7 +722,7 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 
         glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(Mk));
 
-        kostka.draw(true);
+        kostka.draw(highlightKostki[i]);
     }
     blurHighlight();
     render_post_processing();
