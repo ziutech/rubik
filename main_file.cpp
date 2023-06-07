@@ -53,8 +53,9 @@ float wallAngle = 0; // Aktualny kąt obrotu ściany
 int chooseWall = 0; //wybór ściany
 int checkAngle;
 
-GLuint fbo_scene;
+GLuint fbo_scene, fbo_blur;
 GLuint scene_color_buffer[2], scene_depth_buffer;
+GLuint blur_color_buffer;
 
 void initSceneFrameBuffer() {
   glGenFramebuffers(1, &fbo_scene);
@@ -96,6 +97,25 @@ void initSceneFrameBuffer() {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void initBlurFrameBuffer() {
+  glGenFramebuffers(1, &fbo_blur);
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo_blur);
+
+  glGenTextures(1, &blur_color_buffer);
+
+  glBindTexture(GL_TEXTURE_2D, blur_color_buffer);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1000, 1000, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                         blur_color_buffer, 0);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 //tablica wektorów obrotu poszczególnych kosteczek
 
 glm::vec3 transKostki[27] = {
@@ -134,6 +154,7 @@ glm::mat4 matKostki[27];
 
 ShaderProgram *sp;
 ShaderProgram *highlight;
+ShaderProgram *blur;
 
 glm::mat4 mulMat(glm::mat4 mat1, glm::mat4 mat2)
 {
@@ -505,6 +526,7 @@ void initOpenGLProgram(GLFWwindow *window) {
   edgeRoughness = readTexture("higher_res/Plastic_Rough_001_roughness.png");
 
   initSceneFrameBuffer();
+  initBlurFrameBuffer();
   kostka.from_file("kostka.obj");
   kostka.set_wall_mapping({
       0,
@@ -517,6 +539,7 @@ void initOpenGLProgram(GLFWwindow *window) {
   });
   sp = new ShaderProgram("v_simplest.glsl", NULL /*  "g_simplest.glsl" */,
                          "f_simplest.glsl");
+  blur = new ShaderProgram("v_blur.glsl", NULL, "f_blur.glsl");
   highlight = new ShaderProgram("v_highlight.glsl", NULL, "f_highlight.glsl");
 }
 
@@ -552,6 +575,29 @@ float screen_texcoords[] = {
 
 int screen_verts_size = 6;
 
+void blurHighlight() {
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo_blur);
+    unsigned int attachments[] = {GL_COLOR_ATTACHMENT0};
+    glDrawBuffers(1, attachments);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    blur->use();
+    
+    glUniform1i(blur->u("highlight"), 1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, scene_color_buffer[1]);
+
+    glEnableVertexAttribArray(blur->a("vertex"));
+    glVertexAttribPointer(blur->a("vertex"), 4, GL_FLOAT, false, 0, screen_verts);
+    glEnableVertexAttribArray(blur->a("texcoord"));
+    glVertexAttribPointer(blur->a("texcoord"), 2, GL_FLOAT, false, 0,
+                          screen_texcoords);
+
+    glDrawArrays(GL_TRIANGLES, 0, screen_verts_size);
+    glDisableVertexAttribArray(blur->a("vertex"));
+    glDisableVertexAttribArray(blur->a("texcoords"));
+}
+
 void render_post_processing(){ 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -564,7 +610,7 @@ void render_post_processing(){
 
     glUniform1i(highlight->u("texture1"), 1);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, scene_color_buffer[1]);
+    glBindTexture(GL_TEXTURE_2D, blur_color_buffer);
 
     glEnableVertexAttribArray(highlight->a("vertex"));
     glVertexAttribPointer(highlight->a("vertex"), 4, GL_FLOAT, false, 0, screen_verts);
@@ -663,7 +709,7 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 
         kostka.draw(true);
     }
-
+    blurHighlight();
     render_post_processing();
 
     glfwSwapBuffers(window); // Przerzuć tylny bufor na przedni
