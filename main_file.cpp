@@ -222,7 +222,7 @@ void obj3dmodel::draw() {
 
   glUniform1i(sp->u("edgeRoughness"), 4);
   glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, edgeNormal);
+  glBindTexture(GL_TEXTURE_2D, edgeRoughness);
 
   glDrawArrays(GL_TRIANGLES, 0, verts.size());
 
