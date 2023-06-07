@@ -116,6 +116,29 @@ void initBlurFrameBuffer() {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+unsigned int pingpongFBO[2];
+unsigned int pingpongBuffer[2];
+
+void initPingPongFrameBuffer() {
+  glGenFramebuffers(2, pingpongFBO);
+  glGenTextures(2, pingpongBuffer);
+  for (unsigned int i = 0; i < 2; i++)
+  {
+      glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+      glBindTexture(GL_TEXTURE_2D, pingpongBuffer[i]);
+      glTexImage2D(
+          GL_TEXTURE_2D, 0, GL_RGBA, 1000, 1000, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL
+      );
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glFramebufferTexture2D(
+          GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpongBuffer[i], 0
+      );
+  }
+}
+
 //tablica wektorów obrotu poszczególnych kosteczek
 
 glm::vec3 transKostki[27] = {
@@ -542,6 +565,7 @@ void initOpenGLProgram(GLFWwindow *window) {
 
   initSceneFrameBuffer();
   initBlurFrameBuffer();
+  initPingPongFrameBuffer();
   kostka.from_file("kostka.obj");
   kostka.set_wall_mapping({
       0,
@@ -591,26 +615,33 @@ float screen_texcoords[] = {
 int screen_verts_size = 6;
 
 void blurHighlight() {
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo_blur);
-    unsigned int attachments[] = {GL_COLOR_ATTACHMENT0};
-    glDrawBuffers(1, attachments);
-    glClearColor(0.0, 0.0, 0.0, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    blur->use();
-    
-    glUniform1i(blur->u("highlight"), 1);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, scene_color_buffer[1]);
+  bool horizontal = true, first_iteration = true;
+  int amount = 10;
+  blur->use();
+  for (unsigned int i = 0; i < amount; i++)
+  {
+      glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]); 
+      glUniform1i(blur->u("image"), 0);
+      glUniform1i(blur->u("horizontal"), horizontal);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(
+          GL_TEXTURE_2D, first_iteration ? scene_color_buffer[1] : pingpongBuffer[!horizontal]
+      ); 
+      glEnableVertexAttribArray(blur->a("vertex"));
+      glVertexAttribPointer(blur->a("vertex"), 4, GL_FLOAT, false, 0, screen_verts);
+      glEnableVertexAttribArray(blur->a("texcoord"));
+      glVertexAttribPointer(blur->a("texcoord"), 2, GL_FLOAT, false, 0,
+                            screen_texcoords);
 
-    glEnableVertexAttribArray(blur->a("vertex"));
-    glVertexAttribPointer(blur->a("vertex"), 4, GL_FLOAT, false, 0, screen_verts);
-    glEnableVertexAttribArray(blur->a("texcoord"));
-    glVertexAttribPointer(blur->a("texcoord"), 2, GL_FLOAT, false, 0,
-                          screen_texcoords);
-
-    glDrawArrays(GL_TRIANGLES, 0, screen_verts_size);
-    glDisableVertexAttribArray(blur->a("vertex"));
-    glDisableVertexAttribArray(blur->a("texcoords"));
+      glDrawArrays(GL_TRIANGLES, 0, screen_verts_size);
+      glDisableVertexAttribArray(blur->a("vertex"));
+      glDisableVertexAttribArray(blur->a("texcoord"));
+      horizontal = !horizontal;
+      if (first_iteration)
+          first_iteration = false;
+  }
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  blur_color_buffer = pingpongBuffer[horizontal];
 }
 
 void render_post_processing(){ 
@@ -669,11 +700,14 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo_scene);
-    glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
     glDrawBuffers(2, attachments);
+    const float white[] = {1, 1, 1, 1};
+    glClearBufferfv(GL_COLOR, 0, white);
+    const float black[] = {0, 0, 0, 1};
+    glClearBufferfv(GL_COLOR, 1, black);
     sp->use(); // Aktywacja programu cieniującego
     // Przeslij parametry programu cieniującego do karty graficznej
     glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(P));

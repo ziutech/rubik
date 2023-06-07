@@ -1,25 +1,38 @@
-#version 330
-uniform sampler2D highlight;
-
+# version 330 core
+out vec4 FragColor;
+  
 in vec2 itexcoord;
-out vec4 blurredHighlight;
-
-vec4 blur9(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
-  vec4 color = vec4(0.0);
-  vec2 off1 = vec2(1.3846153846) * direction;
-  vec2 off2 = vec2(3.2307692308) * direction;
-  color += texture2D(image, uv) * 0.2270270270;
-  color += texture2D(image, uv + (off1 / resolution)) * 0.3162162162;
-  color += texture2D(image, uv - (off1 / resolution)) * 0.3162162162;
-  color += texture2D(image, uv + (off2 / resolution)) * 0.0702702703;
-  color += texture2D(image, uv - (off2 / resolution)) * 0.0702702703;
-  return color;
-}
-
-void main(void) {
-  vec4 color_h1 = blur9(highlight, itexcoord, vec2(1000, 1000), vec2(1, 0));
-  vec4 color_v1 = blur9(highlight, itexcoord, vec2(1000, 1000), vec2(0, 1));
-  vec4 color_h2 = blur9(highlight, itexcoord, vec2(1000, 1000), vec2(-1, 0));
-  vec4 color_v2 = blur9(highlight, itexcoord, vec2(1000, 1000), vec2(0, -1));
-  blurredHighlight = (color_h1, color_h2 + color_v1 + color_v2) / 4;
+uniform sampler2D image;
+  
+uniform bool horizontal;
+const float weight[7] = float[] (
+  0.2255859375,
+	0.1933593750,
+	0.1208496094,
+	0.05371093750,
+	0.01611328125,
+	0.002929687500,
+	0.0002441406250
+);
+void main()
+{             
+    vec2 tex_offset = 1.0 / textureSize(image, 0); // gets size of single texel
+    vec3 result = texture(image, itexcoord).rgb * weight[0]; // current fragment's contribution
+    if(horizontal)
+    {
+        for(int i = 1; i < 7; ++i)
+        {
+            result += texture(image, itexcoord + vec2(tex_offset.x * i, 0.0)).rgb * weight[i];
+            result += texture(image, itexcoord - vec2(tex_offset.x * i, 0.0)).rgb * weight[i];
+        }
+    }
+    else
+    {
+        for(int i = 1; i < 7; ++i)
+        {
+            result += texture(image, itexcoord + vec2(0.0, tex_offset.y * i)).rgb * weight[i];
+            result += texture(image, itexcoord - vec2(0.0, tex_offset.y * i)).rgb * weight[i];
+        }
+    }
+    FragColor = vec4(result, 1.0);
 }
