@@ -33,7 +33,7 @@ flat in int igroup;
 void main(void) {
   int wmap = wall_mapping[igroup];
   if((igroup == -1) && (highlight == 1)) {
-    highlightOut = vec4(1.0, 1.0, 0.0, 1.0);
+    highlightOut = vec4(0.8, 0.9, 0.0, 1.0);
   } else {
     highlightOut = vec4(0.0, 0.0, 0.0, 1.0);
   }
@@ -61,7 +61,7 @@ void main(void) {
     r = reflect(-dirLight, pointNn);
     rv = pow(clamp(dot(r, pointVn), 0, 1), 1);
     ip += diffuse.rgb * lightDiffusion * nl;
-    ip += specularReflection * vec3(0.2) * rv;
+    ip += specularReflection * vec3(0.1) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   } else {
     vec4 pointLn = normalize(pointL);
@@ -81,7 +81,7 @@ void main(void) {
     r = reflect(-dirLight, pointNn);
     rv = pow(clamp(dot(r, pointVn), 0, 1), 1);
     ip += iC.rgb * lightDiffusion * nl;
-    ip += specularReflection * vec3(0.5) * rv;
+    ip += specularReflection * vec3(0.1) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   }
 }
