@@ -10,7 +10,7 @@ void main(void) {
 
   renderedPixel += highlight;
 
-  vec3 result = vec3(1.0) - exp(-renderedPixel * 0.7);
-  result = pow(result, vec3(1.0) / 2.2);
+  vec3 result = vec3(1.0) - exp(-renderedPixel * 3);
+  // result = pow(result, vec3(1.0) / 2.2);
   pixelColor = vec4(result, 1.0);
 }
