@@ -218,13 +218,14 @@ struct obj3dmodel {
   std::array<int, 7> wall_mapping;
 
   void from_file(const char *filename);
-  void draw();
+  void draw(bool hightlight);
   void set_wall_mapping(std::array<int, 7> wall_colors);
 };
 
-void obj3dmodel::draw() {
+void obj3dmodel::draw(bool highlight) {
   glUniform4fv(sp->u("wall_colors"), 4 * 7, wall_colors);
   glUniform1iv(sp->u("wall_mapping"), 7, wall_mapping.data());
+  glUniform1i(sp->u("highlight"), highlight);
 
     glEnableVertexAttribArray(sp->a("vertex"));
     glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, verts.data());
@@ -561,6 +562,10 @@ void render_post_processing(){
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, scene_color_buffer[0]);
 
+    glUniform1i(highlight->u("texture1"), 1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, scene_color_buffer[1]);
+
     glEnableVertexAttribArray(highlight->a("vertex"));
     glVertexAttribPointer(highlight->a("vertex"), 4, GL_FLOAT, false, 0, screen_verts);
     glEnableVertexAttribArray(highlight->a("texcoord"));
@@ -607,7 +612,7 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-    glDrawBuffers(1, attachments);
+    glDrawBuffers(2, attachments);
     sp->use(); // Aktywacja programu cieniującego
     // Przeslij parametry programu cieniującego do karty graficznej
     glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(P));
@@ -656,7 +661,7 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 
         glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(Mk));
 
-        kostka.draw();
+        kostka.draw(true);
     }
 
     render_post_processing();
