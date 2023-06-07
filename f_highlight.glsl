@@ -1,10 +1,8 @@
 #version 330
-uniform sampler2D cb0;
-uniform sampler2D cb1;
+uniform sampler2D texture0;
 in vec4 iColor;
 in vec2 itexcoord;
 out vec4 pixelColor;
 void main(void) {
-
-  pixelColor = texture(cb1, itexcoord);
+  pixelColor = texture(texture0, itexcoord);
 }

@@ -53,6 +53,49 @@ float wallAngle = 0; // Aktualny kąt obrotu ściany
 int chooseWall = 0; //wybór ściany
 int checkAngle;
 
+GLuint fbo_scene;
+GLuint scene_color_buffer[2], scene_depth_buffer;
+
+void initSceneFrameBuffer() {
+  glGenFramebuffers(1, &fbo_scene);
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo_scene);
+
+  glGenTextures(2, scene_color_buffer);
+
+  glBindTexture(GL_TEXTURE_2D, scene_color_buffer[0]);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1000, 1000, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                         scene_color_buffer[0], 0);
+
+  glBindTexture(GL_TEXTURE_2D, scene_color_buffer[1]);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1000, 1000, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
+                         scene_color_buffer[1], 0);
+
+  glGenTextures(1, &scene_depth_buffer);
+  glBindTexture(GL_TEXTURE_2D, scene_depth_buffer);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1000, 1000, 0,
+               GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                         scene_depth_buffer, 0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 //tablica wektorów obrotu poszczególnych kosteczek
 
 glm::vec3 transKostki[27] = {
@@ -460,6 +503,7 @@ void initOpenGLProgram(GLFWwindow *window) {
   edgeNormal = readTexture("higher_res/Plastic_Rough_001_normal.png");
   edgeRoughness = readTexture("higher_res/Plastic_Rough_001_roughness.png");
 
+  initSceneFrameBuffer();
   kostka.from_file("kostka.obj");
   kostka.set_wall_mapping({
       0,
@@ -485,13 +529,56 @@ void freeOpenGLProgram(GLFWwindow *window) {
 
 }
 
+#define V1 -1.0f, -1.0f, 0.0, 1.0
+#define V2 -1.0f, 1.0f, 0.0, 1.0
+#define V3 1.0f, -1.0f, 0.0, 1.0
+#define V4 1.0f, 1.0f, 0.0, 1.0
+
+#define T1 0.0f, 0.0f
+#define T2 0.0f, 1.0f
+#define T3 1.0f, 0.0f
+#define T4 1.0f, 1.0f
+
+float screen_verts[] = {
+    V1, V2, V3, // face 1
+    V2, V3, V4  // face 2
+};
+
+float screen_texcoords[] = {
+    T1, T2, T3, // face 1
+    T2, T3, T4  // face 2
+};
+
+int screen_verts_size = 6;
+
+void render_post_processing(){ 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    highlight->use();
+    
+    glUniform1i(highlight->u("texture0"), 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, scene_color_buffer[0]);
+
+    glEnableVertexAttribArray(highlight->a("vertex"));
+    glVertexAttribPointer(highlight->a("vertex"), 4, GL_FLOAT, false, 0, screen_verts);
+    glEnableVertexAttribArray(highlight->a("texcoord"));
+    glVertexAttribPointer(highlight->a("texcoord"), 2, GL_FLOAT, false, 0,
+                          screen_texcoords);
+
+    glDrawArrays(GL_TRIANGLES, 0, screen_verts_size);
+    glDisableVertexAttribArray(highlight->a("vertex"));
+    glDisableVertexAttribArray(highlight->a("texcoords"));
+
+}
+
 
 bool firstInit = 1;
 
 // Procedura rysująca zawartość sceny
 void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
     //************Tutaj umieszczaj kod rysujący obraz******************l
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
     glm::mat4 cameraMat = glm::mat4(1.0);
     cameraMat = glm::rotate(cameraMat, angle_y,
@@ -515,6 +602,12 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
         firstInit = 0;
     }
 
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo_scene);
+    glClearColor(1.0, 1.0, 1.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    glDrawBuffers(1, attachments);
     sp->use(); // Aktywacja programu cieniującego
     // Przeslij parametry programu cieniującego do karty graficznej
     glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(P));
@@ -565,6 +658,8 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 
         kostka.draw();
     }
+
+    render_post_processing();
 
     glfwSwapBuffers(window); // Przerzuć tylny bufor na przedni
 }

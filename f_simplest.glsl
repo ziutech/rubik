@@ -2,7 +2,7 @@
 
 uniform vec4 wall_colors[7];
 uniform int wall_mapping[7];
-out vec4 pixelColor; //Zmienna wyjsciowa fragment shadera. Zapisuje sie do niej ostateczny (prawie) kolor piksela
+layout (location = 0) out vec4 pixelColor; //Zmienna wyjsciowa fragment shadera. Zapisuje sie do niej ostateczny (prawie) kolor piksela
 
 uniform sampler2D edgeBase;
 uniform sampler2D edgeAmbient;
