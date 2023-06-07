@@ -526,8 +526,8 @@ void initOpenGLProgram(GLFWwindow *window) {
   // programu************
   glClearColor(1, 1, 1, 1);
   glEnable(GL_DEPTH_TEST);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  // glEnable(GL_BLEND);
+  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glfwSetWindowSizeCallback(window, windowResizeCallback);
   glfwSetKeyCallback(window, keyCallback);
   glfwSetCursorEnterCallback(window, cursor_enter_callback); //ustaw sprawdzenie czy myszka jest w oknie

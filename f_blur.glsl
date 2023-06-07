@@ -17,7 +17,9 @@ vec4 blur9(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
 }
 
 void main(void) {
-  vec4 color_h = blur9(highlight, itexcoord, vec2(1000, 1000), vec2(1, 0));
-  vec4 color_v = blur9(highlight, itexcoord, vec2(1000, 1000), vec2(0, 1));
-  blurredHighlight = (color_h + color_v) / 2;
+  vec4 color_h1 = blur9(highlight, itexcoord, vec2(1000, 1000), vec2(1, 0));
+  vec4 color_v1 = blur9(highlight, itexcoord, vec2(1000, 1000), vec2(0, 1));
+  vec4 color_h2 = blur9(highlight, itexcoord, vec2(1000, 1000), vec2(-1, 0));
+  vec4 color_v2 = blur9(highlight, itexcoord, vec2(1000, 1000), vec2(0, -1));
+  blurredHighlight = (color_h1, color_h2 + color_v1 + color_v2) / 4;
 }
