@@ -53,6 +53,92 @@ float wallAngle = 0; // Aktualny kąt obrotu ściany
 int chooseWall = 0; //wybór ściany
 int checkAngle;
 
+GLuint fbo_scene, fbo_blur;
+GLuint scene_color_buffer[2], scene_depth_buffer;
+GLuint blur_color_buffer;
+
+void initSceneFrameBuffer() {
+  glGenFramebuffers(1, &fbo_scene);
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo_scene);
+
+  glGenTextures(2, scene_color_buffer);
+
+  glBindTexture(GL_TEXTURE_2D, scene_color_buffer[0]);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1000, 1000, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                         scene_color_buffer[0], 0);
+
+  glBindTexture(GL_TEXTURE_2D, scene_color_buffer[1]);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1000, 1000, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
+                         scene_color_buffer[1], 0);
+
+  glGenTextures(1, &scene_depth_buffer);
+  glBindTexture(GL_TEXTURE_2D, scene_depth_buffer);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1000, 1000, 0,
+               GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                         scene_depth_buffer, 0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void initBlurFrameBuffer() {
+  glGenFramebuffers(1, &fbo_blur);
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo_blur);
+
+  glGenTextures(1, &blur_color_buffer);
+
+  glBindTexture(GL_TEXTURE_2D, blur_color_buffer);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1000, 1000, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                         blur_color_buffer, 0);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+unsigned int pingpongFBO[2];
+unsigned int pingpongBuffer[2];
+
+void initPingPongFrameBuffer() {
+  glGenFramebuffers(2, pingpongFBO);
+  glGenTextures(2, pingpongBuffer);
+  for (unsigned int i = 0; i < 2; i++)
+  {
+      glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+      glBindTexture(GL_TEXTURE_2D, pingpongBuffer[i]);
+      glTexImage2D(
+          GL_TEXTURE_2D, 0, GL_RGBA, 1000, 1000, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL
+      );
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glFramebufferTexture2D(
+          GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpongBuffer[i], 0
+      );
+  }
+}
+
 //tablica wektorów obrotu poszczególnych kosteczek
 
 glm::vec3 transKostki[27] = {
@@ -68,6 +154,21 @@ glm::vec3 transKostki[27] = {
         glm::vec3(1.94f, -1.94f, 1.94f), glm::vec3(0, -1.94f, 1.94f), glm::vec3(-1.94f, -1.94f, 1.94f),
         glm::vec3(1.94f, -1.94f, 0), glm::vec3(0, -1.94f, 0), glm::vec3(-1.94f, -1.94f, 0),
         glm::vec3(1.94f, -1.94f, -1.94f), glm::vec3(0, -1.94f, -1.94f), glm::vec3(-1.94f, -1.94f, -1.94f),
+};
+
+int highlightKostki[27] = {
+  // sciana fioletowa
+  1, 1, 1,
+  1, 1, 1,
+  1, 1, 1,
+  //sciana pomiedzy
+  0, 0, 0,
+  0, 0, 0, 
+  0, 0, 0, 
+  //scian jasnoniebieska
+  0, 0, 0,
+  0, 0, 0, 
+  0, 0, 0,
 };
 
 std::vector<std::vector<int>> posKostki{ {
@@ -91,6 +192,7 @@ glm::mat4 matKostki[27];
 
 ShaderProgram *sp;
 ShaderProgram *highlight;
+ShaderProgram *blur;
 
 glm::mat4 mulMat(glm::mat4 mat1, glm::mat4 mat2)
 {
@@ -175,13 +277,14 @@ struct obj3dmodel {
   std::array<int, 7> wall_mapping;
 
   void from_file(const char *filename);
-  void draw();
+  void draw(bool hightlight);
   void set_wall_mapping(std::array<int, 7> wall_colors);
 };
 
-void obj3dmodel::draw() {
+void obj3dmodel::draw(bool highlight) {
   glUniform4fv(sp->u("wall_colors"), 4 * 7, wall_colors);
   glUniform1iv(sp->u("wall_mapping"), 7, wall_mapping.data());
+  glUniform1i(sp->u("highlight"), highlight);
 
     glEnableVertexAttribArray(sp->a("vertex"));
     glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, verts.data());
@@ -222,7 +325,7 @@ void obj3dmodel::draw() {
 
   glUniform1i(sp->u("edgeRoughness"), 4);
   glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, edgeNormal);
+  glBindTexture(GL_TEXTURE_2D, edgeRoughness);
 
   glDrawArrays(GL_TRIANGLES, 0, verts.size());
 
@@ -446,8 +549,8 @@ void initOpenGLProgram(GLFWwindow *window) {
   // programu************
   glClearColor(1, 1, 1, 1);
   glEnable(GL_DEPTH_TEST);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  // glEnable(GL_BLEND);
+  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glfwSetWindowSizeCallback(window, windowResizeCallback);
   glfwSetKeyCallback(window, keyCallback);
   glfwSetCursorEnterCallback(window, cursor_enter_callback); //ustaw sprawdzenie czy myszka jest w oknie
@@ -460,6 +563,9 @@ void initOpenGLProgram(GLFWwindow *window) {
   edgeNormal = readTexture("higher_res/Plastic_Rough_001_normal.png");
   edgeRoughness = readTexture("higher_res/Plastic_Rough_001_roughness.png");
 
+  initSceneFrameBuffer();
+  initBlurFrameBuffer();
+  initPingPongFrameBuffer();
   kostka.from_file("kostka.obj");
   kostka.set_wall_mapping({
       0,
@@ -472,6 +578,7 @@ void initOpenGLProgram(GLFWwindow *window) {
   });
   sp = new ShaderProgram("v_simplest.glsl", NULL /*  "g_simplest.glsl" */,
                          "f_simplest.glsl");
+  blur = new ShaderProgram("v_blur.glsl", NULL, "f_blur.glsl");
   highlight = new ShaderProgram("v_highlight.glsl", NULL, "f_highlight.glsl");
 }
 
@@ -485,13 +592,90 @@ void freeOpenGLProgram(GLFWwindow *window) {
 
 }
 
+#define V1 -1.0f, -1.0f, 0.0, 1.0
+#define V2 -1.0f, 1.0f, 0.0, 1.0
+#define V3 1.0f, -1.0f, 0.0, 1.0
+#define V4 1.0f, 1.0f, 0.0, 1.0
+
+#define T1 0.0f, 0.0f
+#define T2 0.0f, 1.0f
+#define T3 1.0f, 0.0f
+#define T4 1.0f, 1.0f
+
+float screen_verts[] = {
+    V1, V2, V3, // face 1
+    V2, V3, V4  // face 2
+};
+
+float screen_texcoords[] = {
+    T1, T2, T3, // face 1
+    T2, T3, T4  // face 2
+};
+
+int screen_verts_size = 6;
+
+void blurHighlight() {
+  bool horizontal = true, first_iteration = true;
+  int amount = 10;
+  blur->use();
+  for (unsigned int i = 0; i < amount; i++)
+  {
+      glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]); 
+      glUniform1i(blur->u("image"), 0);
+      glUniform1i(blur->u("horizontal"), horizontal);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(
+          GL_TEXTURE_2D, first_iteration ? scene_color_buffer[1] : pingpongBuffer[!horizontal]
+      ); 
+      glEnableVertexAttribArray(blur->a("vertex"));
+      glVertexAttribPointer(blur->a("vertex"), 4, GL_FLOAT, false, 0, screen_verts);
+      glEnableVertexAttribArray(blur->a("texcoord"));
+      glVertexAttribPointer(blur->a("texcoord"), 2, GL_FLOAT, false, 0,
+                            screen_texcoords);
+
+      glDrawArrays(GL_TRIANGLES, 0, screen_verts_size);
+      glDisableVertexAttribArray(blur->a("vertex"));
+      glDisableVertexAttribArray(blur->a("texcoord"));
+      horizontal = !horizontal;
+      if (first_iteration)
+          first_iteration = false;
+  }
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  blur_color_buffer = pingpongBuffer[horizontal];
+}
+
+void render_post_processing(){ 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    highlight->use();
+    
+    glUniform1i(highlight->u("texture0"), 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, scene_color_buffer[0]);
+
+    glUniform1i(highlight->u("texture1"), 1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, blur_color_buffer);
+
+    glEnableVertexAttribArray(highlight->a("vertex"));
+    glVertexAttribPointer(highlight->a("vertex"), 4, GL_FLOAT, false, 0, screen_verts);
+    glEnableVertexAttribArray(highlight->a("texcoord"));
+    glVertexAttribPointer(highlight->a("texcoord"), 2, GL_FLOAT, false, 0,
+                          screen_texcoords);
+
+    glDrawArrays(GL_TRIANGLES, 0, screen_verts_size);
+    glDisableVertexAttribArray(highlight->a("vertex"));
+    glDisableVertexAttribArray(highlight->a("texcoords"));
+
+}
+
 
 bool firstInit = 1;
 
 // Procedura rysująca zawartość sceny
 void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
     //************Tutaj umieszczaj kod rysujący obraz******************l
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
     glm::mat4 cameraMat = glm::mat4(1.0);
     cameraMat = glm::rotate(cameraMat, angle_y,
@@ -515,6 +699,15 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
         firstInit = 0;
     }
 
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo_scene);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    glDrawBuffers(2, attachments);
+    const float white[] = {1, 1, 1, 1};
+    glClearBufferfv(GL_COLOR, 0, white);
+    const float black[] = {0, 0, 0, 1};
+    glClearBufferfv(GL_COLOR, 1, black);
     sp->use(); // Aktywacja programu cieniującego
     // Przeslij parametry programu cieniującego do karty graficznej
     glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(P));
@@ -532,39 +725,48 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(0, 1, 0));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
         else if (chooseWall == 1 && posKostki[i][1] == -1) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(0, 1, 0));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
         else if (chooseWall == 2 && posKostki[i][0] == 1) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(1, 0, 0));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
         else if (chooseWall == 3 && posKostki[i][0] == -1) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(1, 0, 0));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
         else if (chooseWall == 4 && posKostki[i][2] == 1) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(0, 0, 1));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
         else if (chooseWall == 5 && posKostki[i][2] == -1) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(0, 0, 1));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
+        else { highlightKostki[i] = 0; }
 
         Mk = glm::translate(Mk, transKostki[i]);
 
         glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(Mk));
 
-        kostka.draw();
+        kostka.draw(highlightKostki[i]);
     }
+    blurHighlight();
+    render_post_processing();
 
     glfwSwapBuffers(window); // Przerzuć tylny bufor na przedni
 }

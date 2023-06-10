@@ -2,13 +2,15 @@
 
 uniform vec4 wall_colors[7];
 uniform int wall_mapping[7];
-out vec4 pixelColor; //Zmienna wyjsciowa fragment shadera. Zapisuje sie do niej ostateczny (prawie) kolor piksela
+layout (location = 0) out vec4 pixelColor; //Zmienna wyjsciowa fragment shadera. Zapisuje sie do niej ostateczny (prawie) kolor piksela
+layout (location = 1) out vec4 highlightOut;
 
 uniform sampler2D edgeBase;
 uniform sampler2D edgeAmbient;
 uniform sampler2D edgeHeight;
 uniform sampler2D edgeNormal;
 uniform sampler2D edgeRoughness;
+uniform int highlight;
 
 const vec3 lightAmbient       = vec3(0.1);
 const vec3 lightDiffusion     = vec3(0.9);
@@ -30,6 +32,11 @@ flat in int igroup;
 
 void main(void) {
   int wmap = wall_mapping[igroup];
+  if((igroup == -1) && (highlight == 1)) {
+    highlightOut = vec4(0.8, 0.9, 0.0, 1.0);
+  } else {
+    highlightOut = vec4(0.0, 0.0, 0.0, 1.0);
+  }
   if((igroup == -1) || (wmap == 0)) {
     vec4 diffuse  = texture(edgeBase, itexCoord);
     vec4 ambient  = texture(edgeAmbient, itexCoord);
@@ -54,7 +61,7 @@ void main(void) {
     r = reflect(-dirLight, pointNn);
     rv = pow(clamp(dot(r, pointVn), 0, 1), 1);
     ip += diffuse.rgb * lightDiffusion * nl;
-    ip += specularReflection * vec3(0.2) * rv;
+    ip += specularReflection * vec3(0.1) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   } else {
     vec4 pointLn = normalize(pointL);
@@ -74,7 +81,7 @@ void main(void) {
     r = reflect(-dirLight, pointNn);
     rv = pow(clamp(dot(r, pointVn), 0, 1), 1);
     ip += iC.rgb * lightDiffusion * nl;
-    ip += specularReflection * vec3(0.5) * rv;
+    ip += specularReflection * vec3(0.1) * rv;
     pixelColor = vec4(ip.rgb, 1.0);
   }
 }
