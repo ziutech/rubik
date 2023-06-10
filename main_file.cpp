@@ -158,17 +158,17 @@ glm::vec3 transKostki[27] = {
 
 int highlightKostki[27] = {
   // sciana fioletowa
-  0, 0, 0, 
-  0, 0, 0, 
-  0, 0, 0, 
+  1, 1, 1,
+  1, 1, 1,
+  1, 1, 1,
   //sciana pomiedzy
   0, 0, 0,
   0, 0, 0, 
   0, 0, 0, 
   //scian jasnoniebieska
-  1, 1, 1, 
-  1, 1, 1, 
-  1, 1, 1,
+  0, 0, 0,
+  0, 0, 0, 
+  0, 0, 0,
 };
 
 std::vector<std::vector<int>> posKostki{ {
@@ -725,32 +725,39 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(0, 1, 0));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
         else if (chooseWall == 1 && posKostki[i][1] == -1) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(0, 1, 0));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
         else if (chooseWall == 2 && posKostki[i][0] == 1) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(1, 0, 0));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
         else if (chooseWall == 3 && posKostki[i][0] == -1) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(1, 0, 0));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
         else if (chooseWall == 4 && posKostki[i][2] == 1) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(0, 0, 1));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
         else if (chooseWall == 5 && posKostki[i][2] == -1) {
             glm::mat4 Mp = glm::mat4(1.0f);
             Mp = glm::rotate(Mp, glm::radians(wallAngle), glm::vec3(0, 0, 1));
             Mk = mulMat(Mk, Mp);
+            highlightKostki[i] = 1;
         }
+        else { highlightKostki[i] = 0; }
 
         Mk = glm::translate(Mk, transKostki[i]);
 
