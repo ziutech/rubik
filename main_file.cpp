@@ -677,17 +677,13 @@ bool firstInit = 1;
 void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
     //************Tutaj umieszczaj kod rysujący obraz******************l
   
-    glm::mat4 cameraMat = glm::mat4(1.0);
-    cameraMat = glm::rotate(cameraMat, angle_y,
-        glm::vec3(1.0f, 0.0f, 0.0f)); // Wylicz macierz modelu
-    cameraMat = glm::rotate(cameraMat, angle_x,
-        glm::vec3(0.0f, 1.0f, 0.0f)); // Wylicz macierz modelu
-    cameraMat = glm::translate(cameraMat, glm::vec3(0.0, 0.0, -6));
-    glm::vec4 camera = cameraMat * glm::vec4(0, 0, 0, 1.0);
     glm::mat4 V =
-        glm::lookAt(glm::vec3(camera.x, camera.y, camera.z), glm::vec3(0, 0, 0),
+        glm::lookAt(glm::vec3(0, 0, -6), glm::vec3(0, 0, 0),
             glm::vec3(0.0f, 1.0f, 0.0f)); // Wylicz macierz widoku
-
+    V = glm::rotate(V, angle_y,
+        glm::vec3(1.0f, 0.0f, 0.0f)); // Wylicz macierz modelu
+    V = glm::rotate(V, angle_x,
+        glm::vec3(0.0f, 1.0f, 0.0f)); // Wylicz macierz modelu
     glm::mat4 P = glm::perspective(50.0f * PI / 180.0f, aspectRatio, 0.01f,
         50.0f); // Wylicz macierz rzutowania
 
@@ -713,7 +709,6 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
     glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(P));
     glUniformMatrix4fv(sp->u("V"), 1, false, glm::value_ptr(V));
     glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
-    glUniform4fv(sp->u("lp"), 1, glm::value_ptr(glm::vec4(camera.x, camera.y, camera.z, 1.0)));
 
     //kostka.draw();
 

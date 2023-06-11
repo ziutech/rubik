@@ -26,7 +26,7 @@ flat out int igroup;
 void main(void) {
     mat4 invTBN = mat4(c1, c2, c3, vec4(0, 0, 0, 1));
     // pointL = normalize(V * (lp - M * vertex));//znormalizowany wektor do światła w przestrzeni oka
-    pointL = normalize(invTBN * (inverse(M) * lp - vertex));
+    pointL = normalize(invTBN * (inverse(V * M) * vec4(0, 1, 0, 1) - vertex));
     pointN = normalize(invTBN * normal);
     // pointV = normalize(vec4(0, 0, 0, 1) - V * M * vertex); //Wektor do obserwatora w przestrzeni oka
     pointV = normalize(invTBN * (inverse(V * M) * vec4(0, 0, 0, 1) - vertex));
