@@ -237,13 +237,28 @@ int vertexCount = myTeapotVertexCount;
 
 float wall_colors[] = {
     1.0, 1.0, 1.0, 0.0, // brzegi
-    1.0, 0.0, 0.0, 0.0, // sciana 1
-    0.0, 1.0, 0.0, 0.0, // sciana 2
-    0.0, 0.0, 1.0, 0.0, // sciana 3
-    1.0, 1.0, 0.0, 0.0, // sciana 4
-    0.0, 1.0, 1.0, 0.0, // sciana 5
-    1.0, 0.0, 1.0, 0.0, // sciana 6
+    1.0, 0.0, 0.0, 0.0, // sciana 1 czerwona
+    0.0, 1.0, 0.0, 0.0, // sciana 2 zielona
+    0.0, 0.0, 1.0, 0.0, // sciana 3 niebieska
+    1.0, 1.0, 0.0, 0.0, // sciana 4 żółta
+    0.0, 1.0, 1.0, 0.0, // sciana 5 jasnoniebieska
+    1.0, 0.0, 1.0, 0.0, // sciana 6 fioletowa
 };
+
+std::vector<std::array<int, 7>> kolorKostki{ {
+        // ściana jasnoniebieska
+        {0, 1, 2, 0, 0, 5, 0,}, {0, 0, 2, 0, 0, 5, 0,}, {0, 0, 2, 3, 0, 5, 0,},
+        {0, 1, 0, 0, 0, 5, 0,}, {0, 0, 0, 0, 0, 5, 0,}, {0, 0, 0, 3, 0, 5, 0,},
+        {0, 1, 0, 0, 4, 5, 0,}, {0, 0, 0, 0, 4, 5, 0,}, {0, 0, 0, 3, 4, 5, 0,},
+        //ściana pomiędzy
+       {0, 1, 2, 0, 0, 0, 0,}, {0, 0, 2, 0, 0, 0, 0,}, {0, 0, 2, 3, 0, 0, 0,},
+        {0, 1, 0, 0, 0, 0, 0,}, {0, 0, 0, 0, 0, 0, 0,}, {0, 0, 0, 3, 0, 0, 0,},
+        {0, 1, 0, 0, 4, 0, 0,}, {0, 0, 0, 0, 4, 0, 0,}, {0, 0, 0, 3, 4, 0, 0,},
+       // ściana fioletowa
+        {0, 1, 2, 0, 0, 0, 6,}, {0, 0, 2, 0, 0, 0, 6,}, {0, 0, 2, 3, 0, 0, 6,},
+        {0, 1, 0, 0, 0, 0, 6,}, {0, 0, 0, 0, 0, 0, 6,}, {0, 0, 0, 3, 0, 0, 6,},
+        {0, 1, 0, 0, 4, 0, 6,}, {0, 0, 0, 0, 4, 0, 6,}, {0, 0, 0, 3, 4, 0, 6,},
+    } };
 
 GLuint edgeAmbient, edgeBase, edgeHeight, edgeNormal, edgeRoughness;
 
@@ -714,6 +729,8 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 
     for (int i = 0; i < 27; i++) {
 
+        kostka.set_wall_mapping(kolorKostki[i]);
+
         glm::mat4 Mk = matKostki[i];
 
         if (chooseWall == 0 && posKostki[i][1] == 1) { 
@@ -815,10 +832,10 @@ int main(void) {
             glfwGetTime(); // Zwiększ/zmniejsz kąt obrotu na podstawie prędkości i
         // czasu jaki upłynał od poprzedniej klatki
 /*sprawdzenie czy kąt obrotu osi y jest za mały lub za duży*/
-        if (angle_y > 0.5)
-            angle_y = 0.5;
-        else if (angle_y < -0.5)
-            angle_y = -0.5;
+        if (angle_y > 0.8)
+            angle_y = 0.8;
+        else if (angle_y < -0.8)
+            angle_y = -0.8;
 
         //printf("%f\n", angle_y);
         //rotacja i edycja
